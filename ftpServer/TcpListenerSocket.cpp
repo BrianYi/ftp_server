@@ -4,7 +4,6 @@
 #include "Dispatcher.h"
 
 TcpListenerSocket::TcpListenerSocket():
-	Task(alive),
 	TcpSocket()
 {
 
@@ -15,14 +14,14 @@ TcpListenerSocket::~TcpListenerSocket( )
 
 }
 
-int32_t TcpListenerSocket::run( )
+int32_t TcpListenerSocket::handle_event( uint32_t flags )
 {
 	// new connection
-	if ( fEvents & EPOLLIN )
+	if ( flags & EPOLLIN )
 	{
 		for(;; )
 		{
-			TcpSocket tcpSocket = this->accept( );
+			TcpSocket tcpSocket = this->accept(NonBlocking );
 			if ( tcpSocket.fSocket == -1 )
 				break;
 
@@ -33,24 +32,20 @@ int32_t TcpListenerSocket::run( )
 			TcpSession* tcpSession = new TcpSession( tcpSocket );
 			sTcpSessionArry.push_back( tcpSession );
 
-			struct epoll_event ev;
-			ev.events = EPOLLIN | EPOLLET;
-			ev.data.fd = tcpSocket.fSocket;
-
-			EventHandler *handler = new EventHandler( ev, tcpSession );
-			Dispatcher::register_handler( tcpSocket.fSocket, handler );
+			tcpSession->request_event( EPOLLIN | EPOLLET );
 		}
 	}
 
 	return 0;
 }
 
-void TcpListenerSocket::request_event( int events )
-{
-	struct epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = this->fSocket;
-	EventHandler *handler = new EventHandler( ev, this );
-	Dispatcher::register_handler( this->fSocket, handler );
-}
+// void TcpListenerSocket::request_event( int events )
+// {
+// 
+// 	struct epoll_event ev;
+// 	ev.events = EPOLLIN | EPOLLET;
+// 	ev.data.fd = this->fSocket;
+// 	EventHandler *handler = new EventHandler( ev, this );
+// 	Dispatcher::register_handler( this->fSocket, handler );
+// }
 

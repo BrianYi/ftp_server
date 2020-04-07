@@ -1,5 +1,6 @@
 #pragma once
 #include "Thread.h"
+#include "EventHandler.h"
 #include "Task.h"
 #include <queue>
 #include <vector>

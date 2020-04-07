@@ -1,17 +1,22 @@
 #pragma once
 #include "common.h"
+#include "Socket.h"
 
-class Task;
-
-class EventHandler
+class EventHandler: public Socket
 { 
 public:
-	EventHandler( struct epoll_event ev, Task* task );
-	~EventHandler( );
-	struct epoll_event get_event( );
-	void set_event( struct epoll_event event );
-	Task *get_task( );
+	EventHandler( int32_t inSocketType, int32_t inProtocol, IOType inIOType );
+	virtual ~EventHandler( );
+	virtual void request_event( uint32_t events );
+ 	uint32_t get_events( );
+ 	//void set_event( struct epoll_event event );
+	virtual int32_t handle_event(uint32_t flags ) { return 0; };
+	virtual void kill_event( );
 protected:
-	struct epoll_event fEvent;
-	Task *fTask;
+	uint32_t fEvents;
 };
+
+inline uint32_t EventHandler::get_events( )
+{
+	return fEvents;
+}

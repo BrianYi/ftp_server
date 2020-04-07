@@ -1,11 +1,11 @@
 #include "TcpSocket.h"
 
-TcpSocket::TcpSocket( ) :Socket( SOCK_STREAM, IPPROTO_TCP )
+TcpSocket::TcpSocket( ) :EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
 {
 
 }
 
-TcpSocket::TcpSocket( const TcpSocket& inTcpSocket ) : Socket( SOCK_STREAM, IPPROTO_TCP )
+TcpSocket::TcpSocket( const TcpSocket& inTcpSocket ) : EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
 {
 	*this = inTcpSocket;
 }
@@ -35,7 +35,7 @@ void TcpSocket::listen( const uint16_t& inPort, const uint32_t& inQueueLength )
 	}
 }
 
-int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType/* = Blocking*/, const time_t& timeout_ms/* = 1000*/ )
+int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType/* = Blocking*/ )
 {
 	if ( this->fBinded )
 	{
@@ -47,11 +47,6 @@ int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType/* = Blocki
 
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );
-
-	if ( inIOType == Blocking )
-		setsockopt( this->fSocket, SOL_SOCKET,
-					SO_SNDTIMEO, ( char* ) &timeout_ms,
-					sizeof( timeout_ms ) );
 
 	int32_t ret = ::connect( this->fSocket, ( const sockaddr* ) &inAddress, sizeof( struct sockaddr ) );
 	if ( ret == 0 )
@@ -62,7 +57,7 @@ int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType/* = Blocki
 	return ret;
 }
 
-int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOType inIOType/* = Blocking*/, const time_t& timeout_ms/* = 1000*/ )
+int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOType inIOType/* = Blocking*/ )
 {
 	if ( this->fBinded )
 	{
@@ -74,11 +69,6 @@ int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOT
 
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );
-
-	if ( inIOType == Blocking )
-		setsockopt( this->fSocket, SOL_SOCKET,
-					SO_SNDTIMEO, ( char* ) &timeout_ms,
-					sizeof( timeout_ms ) );
 
 	Address address( inIP, inPort );
 	int32_t ret = ::connect( this->fSocket, ( const sockaddr* ) &address, sizeof( struct sockaddr ) );
@@ -90,15 +80,10 @@ int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOT
 	return ret;
 }
 
-TcpSocket TcpSocket::accept( IOType inIOType/* = Blocking*/, const time_t& timeout_ms/* = 1000*/ )
+TcpSocket TcpSocket::accept( IOType inIOType/* = Blocking*/ )
 {
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );
-
-	if ( inIOType == Blocking )
-		setsockopt( this->fSocket, SOL_SOCKET,
-					SO_SNDTIMEO, ( char* ) &timeout_ms,
-					sizeof( timeout_ms ) );
 
 	socklen_t size = sizeof( struct sockaddr );
 	Address address;
@@ -111,7 +96,7 @@ TcpSocket TcpSocket::accept( IOType inIOType/* = Blocking*/, const time_t& timeo
 	return client;
 }
 
-int32_t TcpSocket::send( const char* inContent, const size_t& inSize, IOType inIOType, const time_t& timeout_ms/* = 1000*/ )
+int32_t TcpSocket::send( const char* inContent, const size_t& inSize, IOType inIOType )
 {
 	if ( !this->fOpened )
 		this->open( );
@@ -125,16 +110,11 @@ int32_t TcpSocket::send( const char* inContent, const size_t& inSize, IOType inI
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );
 
-	if ( inIOType == Blocking )
-		setsockopt( this->fSocket, SOL_SOCKET,
-					SO_SNDTIMEO, ( char* ) &timeout_ms,
-					sizeof( timeout_ms ) );
-
 	int32_t sentBytes = ::send( this->fSocket, inContent, inSize, 0 );
 	return sentBytes;
 }
 
-int32_t TcpSocket::recv( char* outContent, const size_t& inSize, IOType inIOType, const time_t& timeout_ms/* = 1000*/ )
+int32_t TcpSocket::recv( char* outContent, const size_t& inSize, IOType inIOType )
 {
 	if ( !this->fOpened )
 		this->open( );
@@ -146,11 +126,6 @@ int32_t TcpSocket::recv( char* outContent, const size_t& inSize, IOType inIOType
 
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );
-
-	if ( inIOType == Blocking )
-		setsockopt( this->fSocket, SOL_SOCKET,
-					SO_RCVTIMEO, ( char* ) &timeout_ms,
-					sizeof( timeout_ms ) );
 
 	int32_t receivedBytes = ::recv( this->fSocket, outContent, inSize, 0 );
 	return receivedBytes;

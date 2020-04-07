@@ -1,11 +1,11 @@
 #include "Dispatcher.h"
-#include "Task.h"
+//#include "Task.h"
 #include "TaskThread.h"
 
 int Dispatcher::sFdEpoll = epoll_create( 64 );// size is ignored
 int Dispatcher::sMaxevents = 64;
 size_t Dispatcher::sThreadPicker = 0;
-std::unordered_multimap<int, EventHandler*> Dispatcher::sHandlerTable;
+std::unordered_map<int, EventHandler*> Dispatcher::sHandlerTable;
 std::mutex Dispatcher::mx;
 
 Dispatcher::Dispatcher( )
@@ -32,20 +32,14 @@ void Dispatcher::handle_events( ) // demultiplexer
 		for ( int i = 0; i < nfds; ++i )
 		{
 			std::unique_lock<std::mutex> lock( mx );
-			auto range = sHandlerTable.equal_range( events[ i ].data.fd );
-			for ( auto it = range.first; it != range.second; ++it )
+			auto it = sHandlerTable.find( events[ i ].data.fd );
+			EventHandler *handler = it->second;
+			if ( handler->get_events( ) & events[i].events )
 			{
-				EventHandler *handler = it->second;
-				struct epoll_event ev = handler->get_event( );
-				if ( ev.events & events[i].events )
-				{
-					sThreadPicker++;
-					sThreadPicker %= TaskThreadPool::get_num_threads( );
-					TaskThread *taskThread = TaskThreadPool::get_thread( sThreadPicker );
-					Task* task = handler->get_task( );
-					task->set_events( events[ i ].events );
-					taskThread->push( task );
-				}
+				//Task* handler = handler->get_handler( );
+				//handler->set_events( events[ i ].events );
+				Task *task = new Task( handler, events[ i ].events );
+				push_to_thread( task );
 			}
 		}
 	}
@@ -53,9 +47,12 @@ void Dispatcher::handle_events( ) // demultiplexer
 
 void Dispatcher::register_handler( int fd, EventHandler* handler )
 {
-	struct epoll_event ev = handler->get_event( );
+	struct epoll_event ev;
+	ev.data.fd = handler->fSocket;
+	ev.events = handler->get_events( );
 	
 	std::unique_lock<std::mutex> lock( mx );
+	
 	if ( epoll_ctl( sFdEpoll, EPOLL_CTL_ADD, fd, &ev ) < 0 )
 	{
 		printf( "epoll set insertion error: fd=%d, errno=%d\n", 
@@ -63,13 +60,17 @@ void Dispatcher::register_handler( int fd, EventHandler* handler )
 				errno);
 		return;
 	}
-	sHandlerTable.insert( std::make_pair( fd, handler ) );
+	
+	if ( !sHandlerTable.count(fd) )
+	{
+		sHandlerTable.insert( std::make_pair( fd, handler ) );
 #ifdef _DEBUG
 	printf( "insert fd=%d, event=%x, totoal fd=%d\n",
 			fd,
 			handler,
 			sHandlerTable.size( ) );
 #endif
+	}
 }
 
 void Dispatcher::remove_handler( int fd )
@@ -82,16 +83,36 @@ void Dispatcher::remove_handler( int fd )
 				errno);
 		return;
 	}
-	auto range = sHandlerTable.equal_range( fd );
-	for ( auto it = range.first; it != range.second; ++it )
+
+	auto it = sHandlerTable.find( fd );
+	if ( it == sHandlerTable.end() )
 	{
 #ifdef _DEBUG
-		printf( "delete fd=%d, event=%x, totoal fd=%d\n", 
-				it->first, 
-				it->second, 
-				sHandlerTable.size() );
-#endif
-		delete it->second;
+		printf( "remove_handler error, don't have fd=%d\n", fd );
+#endif // _DEBUG
+		return;
 	}
-	sHandlerTable.erase( fd );
+
+#ifdef _DEBUG
+	printf( "delete fd=%d, event=%x, totoal fd=%d\n",
+			it->first,
+			it->second,
+			sHandlerTable.size( ) );
+#endif
+	//ÔÚTaskThreadÖÐÉ¾³ý
+	EventHandler *handler = it->second;
+	Task *task = new Task( handler, Task::killEvent);
+	push_to_thread( task );
+
+	sHandlerTable.erase( it );
+	close( fd );
+}
+
+
+inline void Dispatcher::push_to_thread( Task *task )
+{
+	sThreadPicker++;
+	sThreadPicker %= TaskThreadPool::get_num_threads( );
+	TaskThread *taskThread = TaskThreadPool::get_thread( sThreadPicker );
+	taskThread->push( task );
 }

@@ -83,8 +83,8 @@
     <ClCompile Include="Dispatcher.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Socket.cpp" />
-    <ClCompile Include="Task.cpp" />
     <ClCompile Include="TaskThread.cpp" />
+    <ClCompile Include="Task.cpp" />
     <ClCompile Include="TcpListenerSocket.cpp" />
     <ClCompile Include="TcpSession.cpp" />
     <ClCompile Include="TcpSocket.cpp" />
@@ -96,8 +96,8 @@
     <ClInclude Include="Dispatcher.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="Socket.h" />
-    <ClInclude Include="Task.h" />
     <ClInclude Include="TaskThread.h" />
+    <ClInclude Include="Task.h" />
     <ClInclude Include="TcpListenerSocket.h" />
     <ClInclude Include="TcpSession.h" />
     <ClInclude Include="TcpSocket.h" />

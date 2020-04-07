@@ -1,10 +1,10 @@
 #include "EventHandler.h"
-#include "Task.h"
+#include "Dispatcher.h"
 
-EventHandler::EventHandler( struct epoll_event ev, Task* task )
+EventHandler::EventHandler( int32_t inSocketType, int32_t inProtocol, IOType inIOType ):
+	Socket(inSocketType, inProtocol, inIOType )
 {
-	fEvent = ev;
-	fTask = task;
+	fEvents = 0;
 }
 
 EventHandler::~EventHandler( )
@@ -13,17 +13,26 @@ EventHandler::~EventHandler( )
 // 		delete fTask;
 }
 
-struct epoll_event EventHandler::get_event( )
+void EventHandler::request_event( uint32_t events )
 {
-	return fEvent;
+	if ( fEvents & events )
+		return;
+	fEvents |= events;
+	Dispatcher::register_handler( fSocket, this );
 }
 
-void EventHandler::set_event( struct epoll_event event )
+void EventHandler::kill_event( )
 {
-	fEvent = event;
+	Dispatcher::remove_handler( this->fSocket );
 }
 
-Task * EventHandler::get_task( )
-{
-	return fTask;
-}
+// 
+// void EventHandler::set_event( struct epoll_event event )
+// {
+// 	fEvent = event;
+// }
+
+// Task * EventHandler::get_handler( )
+// {
+// 	return fTask;
+// }

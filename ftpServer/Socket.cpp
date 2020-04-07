@@ -1,4 +1,6 @@
 #include "Socket.h"
+#include "EventHandler.h"
+#include "Dispatcher.h"
 
 uint32_t Socket::s_num_sockets = 0;
 

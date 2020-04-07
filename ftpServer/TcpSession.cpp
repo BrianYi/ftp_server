@@ -2,21 +2,20 @@
 #include "Dispatcher.h"
 
 TcpSession::TcpSession( TcpSocket tcpSocket ):
-	Task(alive ),
 	TcpSocket(tcpSocket)
 {
 
 }
 
-int32_t TcpSession::run( )
+int32_t TcpSession::handle_event(uint32_t flags )
 {
 	char buf[ 512 ];
-	if ( fEvents & EPOLLIN )
+	if ( flags & EPOLLIN )
 	{
 		static int32_t totalSize = 0;
 		for(;; )
 		{
-			int32_t recvSize = recv( buf, sizeof buf );
+			int32_t recvSize = recv( buf, sizeof buf, NonBlocking );
 			if ( recvSize == -1 )
 				break;
 			else if ( recvSize == 0 )
@@ -25,8 +24,8 @@ int32_t TcpSession::run( )
 						this->ip( ).c_str( ), 
 						this->port( ),
 						this->fSocket );
-
-				//Dispatcher::remove_handler( this->fSocket );
+				
+				this->kill_event( );
 				break;
 			}
 			buf[ recvSize ] = '\0';
@@ -40,10 +39,10 @@ int32_t TcpSession::run( )
 					buf );
 		}
 	}
-	else if ( fEvents & EPOLLOUT )
+	if ( flags & EPOLLOUT )
 	{
 		sprintf( buf, "hello world!" );
-		int32_t sendSize = send( buf, sizeof buf );
+		int32_t sendSize = send( buf, sizeof buf, NonBlocking );
 		printf( "send to %s:%d %dB\n",
 				this->ip( ).c_str( ),
 				this->port( ),

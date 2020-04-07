@@ -1,11 +1,10 @@
 #pragma once
-#include "Task.h"
 #include "TcpSocket.h"
 class TcpSession :
-	public Task, TcpSocket
+	public TcpSocket
 { 
 public:
 	TcpSession( TcpSocket tcpSocket );
-	virtual int32_t run( );
+	virtual int32_t handle_event( uint32_t flags );
 };
 
