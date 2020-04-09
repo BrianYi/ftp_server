@@ -22,9 +22,9 @@ private:
 class TaskThreadPool
 {
 public:
-	static size_t add_thread( int32_t numThread );
+	static uint32_t add_thread( uint32_t numThread );
 	static TaskThread* get_thread( uint32_t index );
-	static size_t get_num_threads( );
+	static uint32_t get_num_threads( );
 private:
 	static std::vector<TaskThread*> sTaskThreadArry;
 };

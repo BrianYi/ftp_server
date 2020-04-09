@@ -6,6 +6,9 @@ Task::Task( EventHandler *handler, uint32_t flags )
 {
 	fHandler = handler;
 	fFlags = flags;
+
+// 	fTimestamp = 0;
+// 	fSeq = 0;
 }
 
 void Task::run( )

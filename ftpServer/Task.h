@@ -8,7 +8,7 @@ class Task
 public:
 	enum
 	{
-		killEvent = 0xfffffffe
+		killEvent = 0x80000000,
 	};
 	Task( EventHandler *handler, uint32_t flags );
 	void run( );
@@ -19,7 +19,6 @@ protected:
 	EventHandler *fHandler;
 	uint32_t fFlags;
 };
-
 
 inline uint32_t Task::get_flags( )
 {

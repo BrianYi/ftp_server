@@ -16,22 +16,31 @@
     <ClCompile Include="Address.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TcpListenerSocket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Dispatcher.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="EventHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TcpSession.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Task.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TaskThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Packet.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RtmpListenerSocket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RtmpSession.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RtmpSessionTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -61,22 +70,34 @@
     <ClInclude Include="Address.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TcpListenerSocket.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Dispatcher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="EventHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TcpSession.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Task.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TaskThread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RtmpListenerSocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RtmpSession.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RtmpSessionTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

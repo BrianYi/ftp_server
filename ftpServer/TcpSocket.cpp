@@ -1,13 +1,20 @@
 #include "TcpSocket.h"
 
-TcpSocket::TcpSocket( ) :EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
+TcpSocket::TcpSocket( ) :
+	EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
 {
 
 }
 
-TcpSocket::TcpSocket( const TcpSocket& inTcpSocket ) : EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
+// TcpSocket::TcpSocket( const TcpSocket& inTcpSocket ) : EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
+// {
+// 	*this = inTcpSocket;
+// }
+
+TcpSocket::TcpSocket( int32_t fd, bool binded, Address& address ) : 
+	EventHandler( fd, binded, SOCK_STREAM, IPPROTO_TCP, Blocking )
 {
-	*this = inTcpSocket;
+	fAddress = address;
 }
 
 // TCP::TCP( IOType inIOType ):Socket(SOCK_STREAM, inIOType)
@@ -80,7 +87,7 @@ int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOT
 	return ret;
 }
 
-TcpSocket TcpSocket::accept( IOType inIOType/* = Blocking*/ )
+TcpSocket* TcpSocket::accept( IOType inIOType/* = Blocking*/ )
 {
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );
@@ -88,15 +95,18 @@ TcpSocket TcpSocket::accept( IOType inIOType/* = Blocking*/ )
 	socklen_t size = sizeof( struct sockaddr );
 	Address address;
 	int socketID = ::accept( this->fSocket, ( struct sockaddr* )&address, &size );
-	TcpSocket client;
-	client.fSocket = socketID;
-	client.fBinded = true;
-	client.fOpened = true;
-	client.fAddress = address;
-	return client;
+	
+	if ( socketID == -1 ) return nullptr;
+
+	TcpSocket* ptrTcpSocket = new TcpSocket;
+	ptrTcpSocket->fSocket = socketID;
+	ptrTcpSocket->fBinded = true;
+	ptrTcpSocket->fOpened = true;
+	ptrTcpSocket->fAddress = address;
+	return ptrTcpSocket;
 }
 
-int32_t TcpSocket::send( const char* inContent, const size_t& inSize, IOType inIOType )
+int32_t TcpSocket::send( const char* inContent, const uint32_t& inSize, IOType inIOType )
 {
 	if ( !this->fOpened )
 		this->open( );
@@ -114,7 +124,7 @@ int32_t TcpSocket::send( const char* inContent, const size_t& inSize, IOType inI
 	return sentBytes;
 }
 
-int32_t TcpSocket::recv( char* outContent, const size_t& inSize, IOType inIOType )
+int32_t TcpSocket::recv( char* outContent, const uint32_t& inSize, IOType inIOType )
 {
 	if ( !this->fOpened )
 		this->open( );

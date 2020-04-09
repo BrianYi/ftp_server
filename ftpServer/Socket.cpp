@@ -49,9 +49,35 @@ Socket::Socket( int32_t inSocketType, int32_t inProtocol, IOType inIOType )
 	::setsockopt( this->fSocket, SOL_SOCKET, SO_RCVBUF, ( char* ) &RECV_BUF_SIZE, sizeof( int ) );
 }
 
+Socket::Socket( int32_t fd, bool binded, int32_t inSocketType, int32_t inProtocol, IOType inIOType /*= Blocking */ )
+{
+	this->s_num_sockets++;
+	if ( this->s_num_sockets == 1 )
+	{
+#ifdef WIN32
+		WSADATA wsaData;
+		if ( WSAStartup( MAKEWORD( 2, 2 ), &wsaData ) != 0 )
+			printf( "WSAStartup error!\n" );
+#endif
+	}
+
+	this->fSocketType = inSocketType;
+	this->fProtocol = inProtocol;
+	this->fOpened = true;
+	this->fBinded = binded;
+	this->fIOType = inIOType;
+	this->fSocket = fd;
+	this->setIOType( this->fIOType );
+	::setsockopt( this->fSocket, SOL_SOCKET, SO_SNDBUF, ( char* ) &SEND_BUF_SIZE, sizeof( int ) );
+	::setsockopt( this->fSocket, SOL_SOCKET, SO_RCVBUF, ( char* ) &RECV_BUF_SIZE, sizeof( int ) );
+}
+
 Socket::~Socket( )
 {
 	this->s_num_sockets--;
+
+	this->close( ); // close fd, save resource
+
 	if ( this->s_num_sockets == 0 )
 	{
 #ifdef WIN32

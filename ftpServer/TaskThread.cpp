@@ -19,7 +19,7 @@ void* TaskThread::entry( )
 		{
 			EventHandler* handler = task->get_handler( );
 #ifdef _DEBUG
-			printf( "threadID=%llu, delete handler=%x, fTaskQueue.size=%d\n",
+			RTMP_LogAndPrintf(RTMP_LOGDEBUG, "threadID=%llu, delete handler=%x, fTaskQueue.size=%d\n",
 					this->get_handle( ),
 					handler,
 					this->fTaskQueue.size( ));
@@ -28,6 +28,7 @@ void* TaskThread::entry( )
 		}
 		lock.unlock( );
 
+		// must lock in implementation(read lock and write lock, or entire lock)
 		task->run( );
 
 		delete task;
@@ -41,9 +42,9 @@ void TaskThread::push( Task* task )
 	fTaskQueue.push( task );
 }
 
-size_t TaskThreadPool::add_thread( int32_t numThread )
+uint32_t TaskThreadPool::add_thread( uint32_t numThread )
 {
-	for ( int32_t i = 0; i < numThread; ++i )
+	for ( uint32_t i = 0; i < numThread; ++i )
 	{
 		TaskThread* ptrTaskThread = new TaskThread( );
 		sTaskThreadArry.push_back( ptrTaskThread );
@@ -59,7 +60,7 @@ TaskThread* TaskThreadPool::get_thread( uint32_t index )
 	return sTaskThreadArry[ index ];
 }
 
-size_t TaskThreadPool::get_num_threads( )
+uint32_t TaskThreadPool::get_num_threads( )
 {
 	return sTaskThreadArry.size( );
 }

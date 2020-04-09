@@ -5,13 +5,25 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/epoll.h>
+#include <sys/time.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <endian.h>
+#include <string.h>
+#include <string>
 #endif
 
-const uint32_t RECV_BUF_SIZE = 10 * 1024u;
-const uint32_t SEND_BUF_SIZE = 10 * 1024u;
+#if __linux__
+#define ntohll		be64toh
+#define htonll		htobe64
+#define msleep(ms)	usleep(1000 * ms)
+#endif
 
-#define SERVER_IP	"0.0.0.0"
-#define SERVER_PORT_TCP	5566
+
+inline uint64_t get_timestamp_ms( )
+{
+	struct timeval tv;
+	gettimeofday( &tv, nullptr );
+	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}

@@ -75,18 +75,21 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <RemoteLdToolExe>g++ -pthread</RemoteLdToolExe>
+    <RemoteLdToolExe>g++</RemoteLdToolExe>
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="Address.cpp" />
     <ClCompile Include="EventHandler.cpp" />
     <ClCompile Include="Dispatcher.cpp" />
+    <ClCompile Include="Log.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Packet.cpp" />
+    <ClCompile Include="RtmpListenerSocket.cpp" />
+    <ClCompile Include="RtmpSession.cpp" />
+    <ClCompile Include="RtmpSessionTable.cpp" />
     <ClCompile Include="Socket.cpp" />
     <ClCompile Include="TaskThread.cpp" />
     <ClCompile Include="Task.cpp" />
-    <ClCompile Include="TcpListenerSocket.cpp" />
-    <ClCompile Include="TcpSession.cpp" />
     <ClCompile Include="TcpSocket.cpp" />
     <ClCompile Include="Thread.cpp" />
   </ItemGroup>
@@ -95,18 +98,31 @@
     <ClInclude Include="EventHandler.h" />
     <ClInclude Include="Dispatcher.h" />
     <ClInclude Include="common.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="Packet.h" />
+    <ClInclude Include="RtmpListenerSocket.h" />
+    <ClInclude Include="RtmpSession.h" />
+    <ClInclude Include="RtmpSessionTable.h" />
+    <ClInclude Include="ServerHeader.h" />
     <ClInclude Include="Socket.h" />
     <ClInclude Include="TaskThread.h" />
     <ClInclude Include="Task.h" />
-    <ClInclude Include="TcpListenerSocket.h" />
-    <ClInclude Include="TcpSession.h" />
     <ClInclude Include="TcpSocket.h" />
     <ClInclude Include="Thread.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <CppAdditionalWarning>switch;no-deprecated-declarations;empty-body;return-type;parentheses;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable</CppAdditionalWarning>
+      <CAdditionalWarning>switch;no-deprecated-declarations;empty-body;return-type;parentheses;no-pointer-sign;no-format;uninitialized;unreachable-code;unused-function;unused-value;unused-variable</CAdditionalWarning>
     </ClCompile>
+    <Link>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <LibraryDependencies>pthread;</LibraryDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

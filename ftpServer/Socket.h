@@ -12,7 +12,8 @@ public:
 	int fSocket;
 public:
 	Socket( int32_t inSocketType, int32_t inProtocol, IOType inIOType = Blocking );
-	~Socket( );
+	Socket( int32_t fd, bool binded, int32_t inSocketType, int32_t inProtocol, IOType inIOType = Blocking );
+	virtual ~Socket( );
 	void setIOType( IOType inIOType );
 	void reuse_addr( );
 	void no_delay( );
@@ -31,6 +32,7 @@ protected:
 	IOType fIOType;
 private:
 	Socket( );
+	Socket( const Socket& ) = delete;
 	static uint32_t s_num_sockets;
 };
 
