@@ -1,5 +1,8 @@
 #pragma once
 #include <stdio.h>
+#include <string.h>
+#include <string>
+
 #if __linux__
 #include <stdint-gcc.h>
 #include <unistd.h>
@@ -10,8 +13,6 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <endian.h>
-#include <string.h>
-#include <string>
 #endif
 
 #if __linux__
@@ -27,3 +28,12 @@ inline uint64_t get_timestamp_ms( )
 	gettimeofday( &tv, nullptr );
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
+
+#if WIN32
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+#endif

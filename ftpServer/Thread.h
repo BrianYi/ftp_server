@@ -9,9 +9,8 @@ public:
 	Thread( );
 	virtual ~Thread( ) { }
 	int start( );
-	void sleep(uint32_t ms );
 	virtual void* entry( ) = 0;
-	uint64_t get_handle( );
+	uint64_t handle( );
 private:
 	static void* _entry( void* arg );
 };

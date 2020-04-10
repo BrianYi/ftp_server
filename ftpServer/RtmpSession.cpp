@@ -13,8 +13,8 @@ RtmpSession::RtmpSession( ) :
 	fType = typeUnknown;
 	fState = stateIdle;
 
-	this->set_socket_sndbuf_size( 1024 * MAX_PACKET_SIZE );
-	this->set_socket_rcvbuf_size( 1024 * MAX_PACKET_SIZE );
+	this->set_socket_sndbuf_size( 10 * MAX_PACKET_SIZE );
+	this->set_socket_rcvbuf_size( 10 * MAX_PACKET_SIZE );
 }
 
 RtmpSession::RtmpSession( int32_t fd, Address& address ):
@@ -42,30 +42,22 @@ RtmpSession::~RtmpSession( )
  */
 int32_t RtmpSession::handle_event( uint32_t flags )
 {
-	if ( fIsDead ) 
+	if ( fIsDead )
 		return 0;
 
 	char buf[ MAX_PACKET_SIZE ];
 	if ( flags & EPOLLIN )
 	{
 		// lock reading
-		std::unique_lock<std::mutex> lockRead( fReadMx );
+		//std::unique_lock<std::mutex> lockRead( fReadMx );
 
 		// this shot is triggered
-		//this->fEvents &= ~EPOLLIN;
+		this->fEvents &= ~EPOLLIN;
 
 		for ( ;; )
 		{
-			int recvSize = recv( (char *)buf, MAX_PACKET_SIZE, Socket::NonBlocking );
-			
 			// consume the whole buffer data
-			if (errno == EAGAIN || errno == EWOULDBLOCK )
-			{
-				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "recv buffer is clear. errno=%d, time=%llu", 
-								   errno,
-								   get_timestamp_ms() );
-				break;
-			}
+			int recvSize = recv( (char *)buf, MAX_PACKET_SIZE, Socket::NonBlocking );
 			
 			// peer connection lost
 			if ( recvSize == 0 )
@@ -74,11 +66,21 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 				return -1;
 			}
 
+			// no data
+			if ( recvSize == -1 )
+			{
+				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "recv buffer is clear. errno=%d, time=%llu",
+								   errno,
+								   get_timestamp_ms( ) );
+				break;
+			}
+			
 			if ( recvSize != MAX_PACKET_SIZE )
 			{
 				RTMP_Log( RTMP_LOGERROR, "ERROR! recv %d byte, recv failed with error: %d", recvSize, errno );
 				break;
 			}
+			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "RtmpSession=%x, Queue Size=%u", this, this->fPacketQueue.size( ) );
 
 			Packet pkt( buf );
 
@@ -99,9 +101,9 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 					 * existed app
 					 */
 					this->queue_push( PacketUtils::new_err_packet( pkt.app( ) ) );
-
+					
 					// request write event
-					//this->request_event( EPOLLOUT );
+					this->request_event( EPOLLOUT );
 				}
 				else
 				{
@@ -122,7 +124,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 					this->queue_push( PacketUtils::new_ack_packet( pkt.app( ), pkt.reserved( ) ) );
 
 					// request write event
-					//this->request_event( EPOLLOUT );
+					this->request_event( EPOLLOUT );
 
 					// log recording
 					RTMP_LogAndPrintf( RTMP_LOGDEBUG, "pusher from %s:%d has create app[%s].",
@@ -142,7 +144,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 					this->queue_push( PacketUtils::new_err_packet( pkt.app( ) ) );
 
 					// request write event
-					//this->request_event( EPOLLOUT );
+					this->request_event( EPOLLOUT );
 				}
 				else
 				{
@@ -150,14 +152,22 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 					 * is it already in pulling state?
 					 */
 					if (fState == statePulling )
+					{
+						// add ack packet to queue
+						this->queue_push( PacketUtils::new_ack_packet( fApp, fTimebase ) );
+						
+						// request write event
+						this->request_event( EPOLLOUT );
+						
 						break;
+					}
 
 					/*
 					 * new puller coming
 					 */
 
 					this->fApp = pkt.app( );
-					this->fTimebase = RtmpSessionTable::find_pusher( fApp )->timebase( );
+					this->fTimebase = RtmpSessionTable::timebase( fApp );
 					this->fType = typePuller;
 					this->fState = statePulling;
 
@@ -168,8 +178,8 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 					this->queue_push( PacketUtils::new_ack_packet( fApp, fTimebase ) );
 
 					// request write event
-					//this->request_event( EPOLLOUT );
-
+					this->request_event( EPOLLOUT );
+					
 					// log recording
 					RTMP_LogAndPrintf( RTMP_LOGDEBUG, "puller from %s:%d is playing app[%s].",
 									   this->ip( ).c_str( ),
@@ -179,6 +189,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 				break;
 			}
 			case Push:
+			case Fin:
 			{
 				if ( pkt.app( ) != this->app( ) )
 				{
@@ -187,39 +198,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 				}
 
 				// find all puller, transmit to them
-				auto range = RtmpSessionTable::equal_range_pullers( fApp );
-				for (auto it = range.first; it != range.second; ++it )
-				{
-					RtmpSession *rtmpSession = it->second;
-					
-					rtmpSession->queue_push( PacketUtils::new_pull_packet( 
-						pkt.size( ), pkt.MP( ), pkt.seq( ), pkt.timestamp( ), 
-						pkt.app( ), pkt.body( ) ) );
-					
-					// request write event
-					//rtmpSession->request_event( EPOLLOUT );
-				}
-				break;
-			}
-			case Fin:
-			{
-				if ( pkt.app( ) != this->app( ) )
-				{
-					RTMP_Log( RTMP_LOGDEBUG, "unknown app %s", pkt.app( ) );
-					break;
-				}
-
-				// find all puller, transmit to them
-				auto range = RtmpSessionTable::equal_range_pullers( fApp );
-				for ( auto it = range.first; it != range.second; ++it )
-				{
-					RtmpSession *rtmpSession = it->second;
-					rtmpSession->queue_push( PacketUtils::new_fin_packet( 
-						pkt.timestamp( ), pkt.app( ) ) );
-					
-					// request write event
-					//rtmpSession->request_event( EPOLLIN );
-				}
+				RtmpSessionTable::broadcast( pkt.app( ), pkt );
 				break;
 			}
 			case Err:
@@ -233,13 +212,13 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			}
 		}
 	}
-	if ( flags & EPOLLOUT )
+	if ( fEvents & EPOLLOUT )
 	{
 		// lock writing
-		std::unique_lock<std::mutex> lockWrite( fWriteMx );
+		//std::unique_lock<std::mutex> lockWrite( fWriteMx );
 
 		// this shot is triggered
-		//this->fEvents &= ~EPOLLOUT;
+		this->fEvents &= ~EPOLLOUT;
 
 		for ( ;; )
 		{
@@ -258,21 +237,24 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 
 			int sendSize = send( ( char * ) &netPkt, MAX_PACKET_SIZE, Socket::NonBlocking );
 
-			if ( errno == EAGAIN || errno == EWOULDBLOCK )
+			if ( sendSize < 0 )
 			{
-				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "send buffer is clear. errno=%d, time=%llu",
-								   errno,
-								   get_timestamp_ms( ) );
-				break;
-			}
-#ifdef _DEBUG
-			if ( sendSize == -1 || 
-				 sendSize != MAX_PACKET_SIZE ) // send failed, then push packet back to queue, wait for next send-able
-			{
-				RTMP_Log( RTMP_LOGDEBUG, "send %d byte, send failed with error: %d, [%s:%d]",
-						  sendSize, errno, __FUNCTION__, __LINE__ );
 				this->queue_push( ptrPkt );
+				if ( errno == EAGAIN )
+				{
+					continue;
+				}
+				else
+				{
+					break;
+				}
+			}
 
+#ifdef _DEBUG
+			if ( sendSize != MAX_PACKET_SIZE ) // send failed, then push packet back to queue, wait for next send-able
+			{
+				RTMP_Log( RTMP_LOGERROR, "ERROR! send %d byte, send failed with error: %d", 
+						  sendSize, errno );
 				break;
 			}
 #endif // _DEBUG
@@ -283,6 +265,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 
 			delete ptrPkt;
 		}
+		//this->request_event( EPOLLIN );
 	}
 	return 0;
 }

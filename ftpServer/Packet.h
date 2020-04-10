@@ -87,8 +87,12 @@ public:
 	{ return Packet( 0, Err, 0, 0, 0, get_timestamp_ms( ), app, nullptr ); }
 	static Packet* new_err_packet( const std::string& app )
 	{ return new Packet( 0, Err, 0, 0, 0, get_timestamp_ms( ), app, nullptr ); }
+	static Packet pull_packet( const uint32_t& size, const int32_t& MP, const uint32_t& seq, const uint64_t& timestamp, const std::string& app, const char* body )
+	{ return Packet( size, Pull, 0, MP, seq, timestamp, app, body ); }
 	static Packet* new_pull_packet( const uint32_t& size, const int32_t& MP, const uint32_t& seq, const uint64_t& timestamp, const std::string& app, const char* body )
 	{ return new Packet( size, Pull, 0, MP, seq, timestamp, app, body ); }
+	static Packet fin_packet( const uint64_t& timestamp, const std::string& app )
+	{ return Packet( 0, Fin, 0, 0, 0, timestamp, app, nullptr ); }
 	static Packet* new_fin_packet( const uint64_t& timestamp, const std::string& app )
 	{ return new Packet( 0, Fin, 0, 0, 0, timestamp, app, nullptr ); }
 };

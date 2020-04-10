@@ -34,11 +34,7 @@ void Dispatcher::handle_events( ) // demultiplexer
 			std::unique_lock<std::mutex> lock( mx );
 			auto it = sHandlerTable.find( ev[ i ].data.fd );
 			EventHandler *handler = it->second;
-			uint32_t events = handler->events( );
-
-			// mark this shot is triggered
-			handler->set_events( events &~ev[ i ].events );
-			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "fd %d triggered event=%s, left event=%s",
+			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "fd %d triggered event=%s, handler events=%s",
 								handler->fSocket,
 								events_str( ev[ i ].events ).c_str( ),
 								events_str( handler->events( ) ).c_str( ) );
@@ -143,4 +139,9 @@ void Dispatcher::remove_handler( int fd )
 	Task *task = new Task( handler, Task::killEvent );
 	push_to_thread( task );
 	//close( fd ); // close should be in destructor
+}
+
+bool Dispatcher::exist_handler( int fd )
+{
+	return sHandlerTable.count( fd );
 }

@@ -38,7 +38,7 @@ int main( int argc, char* argv[ ] )
 			  tm.wYear,
 			  tm.wMonth,
 			  tm.wDay,
-			  tm.wHour + 8, tm.wMinute, tm.wSecond );
+			  tm.wHour, tm.wMinute, tm.wSecond );
 	RTMP_Log( RTMP_LOGDEBUG, "==============================" );
 
 	/*

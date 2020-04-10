@@ -1,6 +1,8 @@
 #include "TaskThread.h"
 
 std::vector<TaskThread*> TaskThreadPool::sTaskThreadArry;
+std::shared_mutex TaskThreadPool::sMutexRW;
+std::atomic<int32_t> TaskThreadPool::sReaderNum, TaskThreadPool::sWriterNum;
 
 void* TaskThread::entry( )
 {
@@ -8,29 +10,49 @@ void* TaskThread::entry( )
 	{
 		if ( fTaskQueue.empty( ) )
 		{
-			sleep( 10 );
+			::usleep( 100 );
 			continue;
 		}
 
 		std::unique_lock<std::mutex> lock( mx );
-		Task *task = fTaskQueue.front( );;
+		Task *task = fTaskQueue.front( );
 		fTaskQueue.pop( );
-		if ( task->get_flags() & Task::killEvent )
+		if ( task->flags() & Task::killEvent )
 		{
-			EventHandler* handler = task->get_handler( );
-#ifdef _DEBUG
-			RTMP_LogAndPrintf(RTMP_LOGDEBUG, "threadID=%llu, delete handler=%x, fTaskQueue.size=%d\n",
-					this->get_handle( ),
-					handler,
-					this->fTaskQueue.size( ));
-#endif // _DEBUG
-			delete handler;
+			EventHandler *h = task->handler( );
+			if ( h->refcount( ) == 1 )
+			{
+				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "Kill Event, event ref=%d, delete handler=%x, fd=%d",
+								   h->refcount( ), h, h->fSocket );
+				delete h;
+				delete task;
+			}
+			else
+				fTaskQueue.push( task );
+			continue;
 		}
 		lock.unlock( );
 
-		// must lock in implementation(read lock and write lock, or entire lock)
-		task->run( );
-
+		if (task->flags() & EPOLLIN ) // write lock
+		{
+			TaskThreadPool::sMutexRW.lock( );
+			TaskThreadPool::sWriterNum++;
+			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, writers=%d",
+							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sWriterNum.load() );
+			task->run( );
+			TaskThreadPool::sWriterNum--;
+			TaskThreadPool::sMutexRW.unlock( );
+		}
+		else // read lock
+		{
+			TaskThreadPool::sMutexRW.lock_shared( );
+			TaskThreadPool::sReaderNum++;
+			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, readers=%d",
+							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sReaderNum.load() ); 
+			task->run( );
+			TaskThreadPool::sReaderNum--;
+			TaskThreadPool::sMutexRW.unlock_shared( );
+		}
 		delete task;
 	}
 	return nullptr;

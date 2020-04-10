@@ -18,10 +18,10 @@ int32_t RtmpListenerSocket::handle_event( uint32_t flags )
 	if ( flags & EPOLLIN )
 	{
 		// lock reading
-		std::unique_lock<std::mutex> lockRead( fReadMx );
+		//std::unique_lock<std::mutex> lockRead( fReadMx );
 
 		// this shot is triggered
-		//this->fEvents &= ~EPOLLIN;
+		this->fEvents &= ~EPOLLIN;
 
 		for ( ;; )
 		{
@@ -36,11 +36,11 @@ int32_t RtmpListenerSocket::handle_event( uint32_t flags )
 			ptrRtmpSession->set_accept_time( get_timestamp_ms( ) );
 
 			// request read event
-			ptrRtmpSession->request_event( EPOLLIN | EPOLLOUT );
+			ptrRtmpSession->request_event( EPOLLIN );
 		}
 
 		// request new connect event
-		//this->request_event( EPOLLIN );
+		this->request_event( EPOLLIN );
 	}
 	return 0;
 }

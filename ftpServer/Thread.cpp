@@ -11,12 +11,7 @@ int Thread::start( )
 	return err;
 }
 
-void Thread::sleep( uint32_t ms )
-{
-	::usleep( 1000 * ms );
-}
-
-uint64_t Thread::get_handle( )
+uint64_t Thread::handle( )
 {
 	return fThreadId;
 }

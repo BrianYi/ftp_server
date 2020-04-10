@@ -10,11 +10,11 @@ public:
 	Address( const std::string& inIP, const uint16_t& inPort );
 	Address( struct sockaddr_in inSockAddr );
 	~Address( );
-	std::string getIP( ) const;
-	void setIP( const std::string& inIP );
-	uint16_t getPort( ) const;
-	void setPort( const uint16_t& inPort );
+	std::string ip( ) const;
+	void set_ip( const std::string& inIP );
+	uint16_t port( ) const;
+	void set_port( const uint16_t& inPort );
 private:
-	void fAddress( const std::string& inIP, const uint16_t& inPort );
+	void _address( const std::string& inIP, const uint16_t& inPort );
 };
 

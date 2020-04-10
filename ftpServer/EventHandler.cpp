@@ -5,12 +5,16 @@ EventHandler::EventHandler( int32_t inSocketType, int32_t inProtocol, IOType inI
 	Socket(inSocketType, inProtocol, inIOType )
 {
 	fEvents = 0;
+	fIsDead = false;
+	fRefCount = 0;
 }
 
 EventHandler::EventHandler( int32_t fd, bool binded, int32_t inSocketType, int32_t inProtocol, IOType inIOType ):
 	Socket(fd, binded, inSocketType, inProtocol, inIOType )
 {
 	fEvents = 0;
+	fIsDead = false;
+	fRefCount = 0;
 }
 
 EventHandler::~EventHandler( )
@@ -21,9 +25,11 @@ void EventHandler::request_event( uint32_t events )
 {
 // 	if ( fEvents & events )
 // 		return;
-	fEvents = events | EPOLLET;
-	//fEvents |= events;
-	//fEvents |= EPOLLET;	// all task is one shot and edge-trigger
+	
+	// all task is one shot and edge-trigger
+	// need atomic, dispatcher also write
+	fEvents = events | EPOLLIN | EPOLLET;
+
 	Dispatcher::register_handler( fSocket, this );
 }
 

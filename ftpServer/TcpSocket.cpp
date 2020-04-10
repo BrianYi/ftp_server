@@ -148,10 +148,10 @@ Address TcpSocket::address( void )
 
 std::string TcpSocket::ip( void )
 {
-	return fAddress.getIP( );
+	return fAddress.ip( );
 }
 
 uint16_t TcpSocket::port( void )
 {
-	return fAddress.getPort( );
+	return fAddress.port( );
 }

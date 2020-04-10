@@ -34,7 +34,11 @@
 #if WIN32
 #include <process.h>
 #elif __linux__
-#include "common.h"
+#include <unistd.h>
+#endif
+
+#if __linux__
+#define msleep(ms) usleep(1000 * ms)
 #endif
 
 #define MAX_PRINT_LEN	2048

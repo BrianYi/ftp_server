@@ -14,7 +14,8 @@ public:
 	~RtmpSessionTable( );
 	static void insert( RtmpSession *rtmpSession )
 	{
-		auto cmpArry = [& ] ( RtmpSession *r ) { return r == rtmpSession; };
+		std::unique_lock<std::mutex> lock( RtmpSessionTable::mx );
+		auto cmpArry = [ & ] ( RtmpSession *r ) { return r == rtmpSession; };
 		if ( std::find_if( sRtmpSessionArry.begin( ), sRtmpSessionArry.end( ), cmpArry ) != sRtmpSessionArry.end( ) )
 		{
 			RTMP_Log( RTMP_LOGDEBUG, "insert duplicated, rtmpSession=%x, [%s:%d]",
@@ -29,6 +30,7 @@ public:
 	}
 	static void erase( RtmpSession *rtmpSession )
 	{
+		std::unique_lock<std::mutex> lock( RtmpSessionTable::mx );
 		auto cmpArry = [& ] ( RtmpSession *r ) { return r == rtmpSession; };
 		auto it = std::find_if( sRtmpSessionArry.begin( ), sRtmpSessionArry.end( ), cmpArry );
 		if ( it == sRtmpSessionArry.end( ) )
@@ -61,19 +63,59 @@ public:
 							  rtmpSession->fSocket );
 					break;
 				}
+				++it;
 			}
 		}
 	}
 	static bool is_exist_app( const std::string& app ) { return sRtmpPusherSessionTable.count( app ); }
-	static std::pair<RtmpSessionUnorderedMultimapType::iterator, RtmpSessionUnorderedMultimapType::iterator> 
-		equal_range_pullers( const std::string& app ) { return sRtmpPullerSessionTable.equal_range( app ); }
-	static RtmpSession* find_pusher( const std::string& app ) 
-	{ 
+// 	static std::pair<RtmpSessionUnorderedMultimapType::iterator, RtmpSessionUnorderedMultimapType::iterator> 
+// 		equal_range_pullers( const std::string& app ) 
+// 	{ 
+// 		// need global lock
+// 		return sRtmpPullerSessionTable.equal_range( app ); 
+// 	}
+	static int32_t timebase( const std::string& app )
+	{
 		auto it = sRtmpPusherSessionTable.find( app );
-		return (it != sRtmpPusherSessionTable.end( ) ? it->second : nullptr);
+		return it->second->timebase( );
 	}
+	static void broadcast( const std::string& app, Packet& packet )
+	{
+		std::unique_lock<std::mutex> lock( RtmpSessionTable::mx );
+		auto range = sRtmpPullerSessionTable.equal_range( app );
+		for ( auto it = range.first; it != range.second; ++it )
+		{
+			RtmpSession *rtmpSession = it->second;
+
+			if (packet.type() == Push )
+			{
+				rtmpSession->queue_push( PacketUtils::new_pull_packet(
+					packet.size( ), packet.MP( ), packet.seq( ), packet.timestamp( ),
+					packet.app( ), packet.body( ) ) );
+			}
+			else if ( packet.type( ) == Fin )
+			{
+				rtmpSession->queue_push( PacketUtils::new_fin_packet(
+					packet.timestamp( ), packet.app( ) ) );
+			}
+			else
+			{
+				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "Unknown broadcast packet, [%s:%d]", 
+								   __FUNCTION__, __LINE__ );
+			}
+
+			// request write event
+			rtmpSession->request_event( EPOLLOUT );
+		}
+	}
+// 	static RtmpSession* find_pusher( const std::string& app ) 
+// 	{ 
+// 		auto it = sRtmpPusherSessionTable.find( app );
+// 		return (it != sRtmpPusherSessionTable.end( ) ? it->second : nullptr);
+// 	}
 protected:
 	static RtmpSessionArryType sRtmpSessionArry;	// store all session
 	static RtmpSessionUnorderedMapType sRtmpPusherSessionTable;		// store pusher app-session
 	static RtmpSessionUnorderedMultimapType sRtmpPullerSessionTable;	// store puller app-session
+	static std::mutex mx;
 };

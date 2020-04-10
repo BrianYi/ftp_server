@@ -70,8 +70,6 @@ protected:
 protected:
 	std::string fApp;
 	int64_t fAcceptTime;
-// 	int64_t fLastSendTime;
-// 	int64_t fLastRecvTime;
 	int32_t fTimebase;
 	int32_t fType;
 	int32_t fState;

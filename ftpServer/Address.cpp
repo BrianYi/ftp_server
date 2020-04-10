@@ -2,34 +2,34 @@
 
 Address::Address( )
 {
-	fAddress( "0.0.0.0", 0 );
+	_address( "0.0.0.0", 0 );
 }
 
 
 Address::Address( const uint16_t& inPort )
 {
-	fAddress( "0.0.0.0", inPort );
+	_address( "0.0.0.0", inPort );
 }
 
 Address::Address( const std::string& inIP, const uint16_t& inPort )
 {
-	fAddress( inIP, inPort );
+	_address( inIP, inPort );
 }
 
 Address::Address( struct sockaddr_in inSockAddr )
 {
-	fAddress( ::inet_ntoa( inSockAddr.sin_addr ), inSockAddr.sin_port );
+	_address( ::inet_ntoa( inSockAddr.sin_addr ), inSockAddr.sin_port );
 }
 
 Address::~Address( )
 { }
 
-std::string Address::getIP( ) const
+std::string Address::ip( ) const
 {
 	return ::inet_ntoa( this->sin_addr );
 }
 
-void Address::setIP( const std::string& inIP )
+void Address::set_ip( const std::string& inIP )
 {
 	uint32_t address = ::inet_addr( inIP.c_str( ) );
 	if ( address == INADDR_NONE )
@@ -42,19 +42,19 @@ void Address::setIP( const std::string& inIP )
 	}
 }
 
-uint16_t Address::getPort( ) const
+uint16_t Address::port( ) const
 {
 	return ntohs( this->sin_port );
 }
 
-void Address::setPort( const uint16_t& inPort )
+void Address::set_port( const uint16_t& inPort )
 {
 	this->sin_port = htons( inPort );
 }
 
-void Address::fAddress( const std::string& inIP, const uint16_t& inPort )
+void Address::_address( const std::string& inIP, const uint16_t& inPort )
 {
 	this->sin_family = AF_INET;
-	this->setIP( inIP );
-	this->setPort( inPort );
+	this->set_ip( inIP );
+	this->set_port( inPort );
 }

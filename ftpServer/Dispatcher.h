@@ -16,6 +16,7 @@ public:
 	void handle_events( );
 	static void register_handler( int fd, EventHandler* handler);
 	static void remove_handler( int fd );
+	static bool exist_handler( int fd );
 private:
 	static void push_to_thread( Task *task );
 	static int sFdEpoll;

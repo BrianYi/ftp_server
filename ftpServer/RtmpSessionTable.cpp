@@ -1,5 +1,6 @@
 #include "RtmpSessionTable.h"
 
+std::mutex RtmpSessionTable::mx;
 /*
  * static variable declaration
  */

@@ -23,7 +23,8 @@ Packet::Packet( const uint32_t& size, const int32_t& type, const int32_t& reserv
 	fRawPacket.header.MP = MP;
 	fRawPacket.header.seq = seq;
 	fRawPacket.header.timestamp = timestamp;
-	strncpy( fRawPacket.header.app, app.c_str( ), app.size( ) );
+	strcpy( fRawPacket.header.app, app.c_str( ) );
+
 	if ( body )
 		memcpy( fRawPacket.body, (void *)body, BODY_SIZE_H( fRawPacket.header ) );
 }
