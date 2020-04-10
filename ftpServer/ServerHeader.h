@@ -3,15 +3,20 @@
 #include "Log.h"
 
 // packet info
-#define KEEP_TRACK_PACKET		1
+#define KEEP_TRACK_PACKET			0
 // packet hex info
-#define KEEP_TRACK_PACKET_HEX	0
+#define KEEP_TRACK_PACKET_HEX		0
 // only debug mode use, to caculate time wasting
-#define TIME_CACULATE			0
+#define TIME_CACULATE				0
+#define DEBUG_EPOLL					0
+#define DEBUG_RTMPSESSION_QUEUE		0
+#define DEBUG_RTMPSESSION_READER	0
+#define DEBUG_RTMPSESSION_WRITER	0
+
 
 #if KEEP_TRACK_PACKET
-#define KEEP_TRACK_PACKET_SND
-#define KEEP_TRACK_PACKET_RCV
+#define KEEP_TRACK_PACKET_SND	1
+#define KEEP_TRACK_PACKET_RCV	1
 #endif
 
 #if KEEP_TRACK_PACKET_HEX

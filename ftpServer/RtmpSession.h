@@ -75,4 +75,6 @@ protected:
 	int32_t fState;
 	std::priority_queue<Packet*, std::vector<Packet*>, cmp> fPacketQueue;
 	std::mutex fQueueMx;
+	std::mutex fReadMx;
+	std::mutex fWriteMx;
 };

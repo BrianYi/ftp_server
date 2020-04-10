@@ -23,13 +23,9 @@ EventHandler::~EventHandler( )
 
 void EventHandler::request_event( uint32_t events )
 {
-// 	if ( fEvents & events )
-// 		return;
-	
-	// all task is one shot and edge-trigger
-	// need atomic, dispatcher also write
+	// all task is edge-trigger
+	// EPOLLIN is alive all the lifecycle
 	fEvents = events | EPOLLIN | EPOLLET;
-
 	Dispatcher::register_handler( fSocket, this );
 }
 

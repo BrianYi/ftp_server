@@ -18,7 +18,7 @@ public:
 		auto cmpArry = [ & ] ( RtmpSession *r ) { return r == rtmpSession; };
 		if ( std::find_if( sRtmpSessionArry.begin( ), sRtmpSessionArry.end( ), cmpArry ) != sRtmpSessionArry.end( ) )
 		{
-			RTMP_Log( RTMP_LOGDEBUG, "insert duplicated, rtmpSession=%x, [%s:%d]",
+			RTMP_Log( RTMP_LOGERROR, "insert duplicated, rtmpSession=%x, [%s:%d]",
 					  rtmpSession, __FUNCTION__, __LINE__ );
 			return;
 		}
@@ -35,7 +35,7 @@ public:
 		auto it = std::find_if( sRtmpSessionArry.begin( ), sRtmpSessionArry.end( ), cmpArry );
 		if ( it == sRtmpSessionArry.end( ) )
 		{
-			RTMP_Log( RTMP_LOGDEBUG, "erase failed, rtmpSession=%x, [%s:%d]",
+			RTMP_Log( RTMP_LOGERROR, "erase failed, rtmpSession=%x, [%s:%d]",
 					  rtmpSession, __FUNCTION__, __LINE__ );
 			return;
 		}
@@ -44,11 +44,7 @@ public:
 		{
 			auto it = sRtmpPusherSessionTable.find( rtmpSession->app( ) );
 			if ( it->second == rtmpSession )
-			{
 				sRtmpPusherSessionTable.erase( it );
-				RTMP_Log( RTMP_LOGDEBUG, "erase pusher fd %d",
-						  rtmpSession->fSocket );
-			}
 		}
 		else if ( rtmpSession->type( ) == RtmpSession::typePuller )
 		{
@@ -59,8 +55,6 @@ public:
 				if (it->second == rtmpSession )
 				{
 					sRtmpPullerSessionTable.erase( it );
-					RTMP_Log( RTMP_LOGDEBUG, "erase puller fd %d",
-							  rtmpSession->fSocket );
 					break;
 				}
 				++it;
@@ -100,7 +94,7 @@ public:
 			}
 			else
 			{
-				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "Unknown broadcast packet, [%s:%d]", 
+				RTMP_LogAndPrintf( RTMP_LOGERROR, "Unknown broadcast packet, [%s:%d]", 
 								   __FUNCTION__, __LINE__ );
 			}
 
@@ -108,6 +102,9 @@ public:
 			rtmpSession->request_event( EPOLLOUT );
 		}
 	}
+	static int32_t pusher_count( ) { return sRtmpPusherSessionTable.size( ); }
+	static int32_t puller_count( ) { return sRtmpPullerSessionTable.size( ); }
+	static int32_t puller_count( const std::string& app ) { return sRtmpPullerSessionTable.count( app ); }
 // 	static RtmpSession* find_pusher( const std::string& app ) 
 // 	{ 
 // 		auto it = sRtmpPusherSessionTable.find( app );

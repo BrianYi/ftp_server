@@ -1,6 +1,7 @@
 #include "RtmpSession.h"
 #include "Packet.h"
 #include "RtmpSessionTable.h"
+#include "TaskThread.h"
 
 RtmpSession::RtmpSession( ) :
 	TcpSocket( )
@@ -49,7 +50,13 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 	if ( flags & EPOLLIN )
 	{
 		// lock reading
-		//std::unique_lock<std::mutex> lockRead( fReadMx );
+		std::unique_lock<std::mutex> lockRead( fReadMx );
+		
+#if DEBUG_RTMPSESSION_READER
+		TaskThreadPool::sReaderNum++;
+		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "fPacketQueue.size=%u, readers=%d",
+						   this->fPacketQueue.size(), TaskThreadPool::sReaderNum.load( ) );
+#endif // _DEBUG
 
 		// this shot is triggered
 		this->fEvents &= ~EPOLLIN;
@@ -60,31 +67,29 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			int recvSize = recv( (char *)buf, MAX_PACKET_SIZE, Socket::NonBlocking );
 			
 			// peer connection lost
-			if ( recvSize == 0 )
+			if ( recvSize <= 0 )
 			{
-				this->disconnect( );
+				if (recvSize == 0 )
+					this->disconnect( );
+				else // no data, recv buffer is empty
+					break;
+#if DEBUG_RTMPSESSION_READER
+				TaskThreadPool::sReaderNum--;
+#endif // _DEBUG
 				return -1;
 			}
 
-			// no data
-			if ( recvSize == -1 )
-			{
-				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "recv buffer is clear. errno=%d, time=%llu",
-								   errno,
-								   get_timestamp_ms( ) );
-				break;
-			}
-			
 			if ( recvSize != MAX_PACKET_SIZE )
 			{
 				RTMP_Log( RTMP_LOGERROR, "ERROR! recv %d byte, recv failed with error: %d", recvSize, errno );
 				break;
 			}
+#if DEBUG_RTMPSESSION_QUEUE
 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "RtmpSession=%x, Queue Size=%u", this, this->fPacketQueue.size( ) );
-
+#endif
 			Packet pkt( buf );
 
-#ifdef KEEP_TRACK_PACKET_RCV
+#if KEEP_TRACK_PACKET_RCV
 			this->recv_report( &pkt );
 #endif // KEEP_TRACK_PACKET_RCV
 			
@@ -193,7 +198,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			{
 				if ( pkt.app( ) != this->app( ) )
 				{
-					RTMP_Log( RTMP_LOGDEBUG, "unknown app %s", pkt.app() );
+					RTMP_Log( RTMP_LOGERROR, "unknown app %s", pkt.app() );
 					break;
 				}
 
@@ -207,29 +212,32 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 				break;
 			}
 			default:
-				RTMP_Log( RTMP_LOGDEBUG, "unknown packet." );
+				RTMP_Log( RTMP_LOGERROR, "unknown packet." );
 				break;
 			}
 		}
+#if DEBUG_RTMPSESSION_READER
+		TaskThreadPool::sReaderNum--;
+#endif // _DEBUG
 	}
 	if ( fEvents & EPOLLOUT )
 	{
 		// lock writing
-		//std::unique_lock<std::mutex> lockWrite( fWriteMx );
+		std::unique_lock<std::mutex> lockWrite( fWriteMx );
+
+#if DEBUG_RTMPSESSION_WRITER
+		TaskThreadPool::sWriterNum++;
+		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "fPacketQueue.size=%u, writer=%d",
+						   this->fPacketQueue.size( ), TaskThreadPool::sWriterNum.load( ) );
+#endif // _DEBUG
 
 		// this shot is triggered
 		this->fEvents &= ~EPOLLOUT;
 
 		for ( ;; )
 		{
-			//
 			if ( this->queue_empty( ) )
-			{
-				// has event left untriggered, so register again
-// 				if ( ( this->events( ) & EPOLLIN ) || ( this->events( ) & EPOLLOUT ) )
- 					//this->request_event( EPOLLOUT );
 				break;
-			}
 
 			Packet *ptrPkt = this->queue_front( );
 			this->queue_pop( );
@@ -241,16 +249,12 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			{
 				this->queue_push( ptrPkt );
 				if ( errno == EAGAIN )
-				{
 					continue;
-				}
 				else
-				{
 					break;
-				}
 			}
 
-#ifdef _DEBUG
+#if _DEBUG
 			if ( sendSize != MAX_PACKET_SIZE ) // send failed, then push packet back to queue, wait for next send-able
 			{
 				RTMP_Log( RTMP_LOGERROR, "ERROR! send %d byte, send failed with error: %d", 
@@ -259,34 +263,36 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			}
 #endif // _DEBUG
 
-#ifdef KEEP_TRACK_PACKET_RCV
+#if KEEP_TRACK_PACKET_RCV
 			this->send_report( ptrPkt );
 #endif // KEEP_TRACK_PACKET_RCV
 
 			delete ptrPkt;
 		}
-		//this->request_event( EPOLLIN );
+#if DEBUG_RTMPSESSION_WRITER
+		TaskThreadPool::sWriterNum--;
+#endif
 	}
 	return 0;
 }
 
 void RtmpSession::disconnect( )
 {
-	RTMP_Log( RTMP_LOGDEBUG, "lost connection from %s:%d(fd=%d)",
-			  this->ip( ).c_str( ),
-			  this->port( ),
-			  this->fSocket );
 	if ( this->fType == typePusher )
 	{
-		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "pusher for app[%s] from %s:%d has lost",
+		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "pusher for app[%s] from %s:%d has lost, left %d pusher",
 						   this->fApp.c_str( ), this->ip( ).c_str( ),
-						   this->port( ) );
+						   this->port( ),
+						   RtmpSessionTable::pusher_count());
 	}
 	else if ( this->fType == typePuller )
 	{
-		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "pusher for app[%s] from %s:%d has lost",
+		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "puller for app[%s] from %s:%d has lost, left %d puller for app[%s], left total %d puller",
 						   this->fApp.c_str( ), this->ip( ).c_str( ),
-						   this->port( ) );
+						   this->port( ),
+						   RtmpSessionTable::puller_count( fApp ),
+						   this->fApp.c_str( ),
+						   RtmpSessionTable::puller_count( ) );
 	}
 	else
 	{
@@ -304,7 +310,7 @@ void RtmpSession::disconnect( )
 
 void RtmpSession::recv_report( Packet* ptrPkt )
 {
-#ifdef KEEP_TRACK_PACKET_RCV
+#if KEEP_TRACK_PACKET_RCV
 	uint64_t recvTimestamp = get_timestamp_ms( );
 	RTMP_Log( RTMP_LOGDEBUG, "recv packet(%d) from %s:%u, %dB:[%u,%u-%u], packet timestamp=%llu, recv timestamp=%llu, R-P=%llu",
 			  ptrPkt->type( ),
@@ -318,14 +324,14 @@ void RtmpSession::recv_report( Packet* ptrPkt )
 			  recvTimestamp,
 			  recvTimestamp - ptrPkt->timestamp( ) );
 #endif
-#ifdef KEEP_TRACK_PACKET_RCV_HEX
+#if KEEP_TRACK_PACKET_RCV_HEX
 	RTMP_LogHexStr( RTMP_LOGDEBUG, ( uint8_t * ) &ptrPkt->net_packet(), ptrPkt->packet_size( ) );
 #endif // _DEBUG
 }
 
 void RtmpSession::send_report( Packet* ptrPkt )
 {
-#ifdef KEEP_TRACK_PACKET_SND
+#if KEEP_TRACK_PACKET_SND
 	uint64_t sendTimestamp = get_timestamp_ms( );
 	RTMP_Log( RTMP_LOGDEBUG, "send packet(%d) to %s:%u, %dB:[%u,%u-%u], packet timestamp=%llu, send timestamp=%llu, S-P=%llu",
 			  ptrPkt->type( ),
@@ -339,7 +345,7 @@ void RtmpSession::send_report( Packet* ptrPkt )
 			  sendTimestamp,
 			  sendTimestamp - ptrPkt->timestamp( ) );
 #endif
-#ifdef KEEP_TRACK_PACKET_SND_HEX
+#if KEEP_TRACK_PACKET_SND_HEX
 	RTMP_LogHexStr( RTMP_LOGDEBUG, ( uint8_t * ) &ptrPkt->net_packet(), ptrPkt->packet_size() );
 #endif // _DEBUG
 }

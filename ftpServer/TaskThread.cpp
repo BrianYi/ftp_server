@@ -33,26 +33,27 @@ void* TaskThread::entry( )
 		}
 		lock.unlock( );
 
-		if (task->flags() & EPOLLIN ) // write lock
-		{
-			TaskThreadPool::sMutexRW.lock( );
-			TaskThreadPool::sWriterNum++;
-			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, writers=%d",
-							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sWriterNum.load() );
-			task->run( );
-			TaskThreadPool::sWriterNum--;
-			TaskThreadPool::sMutexRW.unlock( );
-		}
-		else // read lock
-		{
-			TaskThreadPool::sMutexRW.lock_shared( );
-			TaskThreadPool::sReaderNum++;
-			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, readers=%d",
-							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sReaderNum.load() ); 
-			task->run( );
-			TaskThreadPool::sReaderNum--;
-			TaskThreadPool::sMutexRW.unlock_shared( );
-		}
+		task->run( );
+// 		if (task->flags() & EPOLLIN ) // write lock
+// 		{
+// 			TaskThreadPool::sMutexRW.lock( );
+// 			TaskThreadPool::sWriterNum++;
+// 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, writers=%d",
+// 							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sWriterNum.load() );
+// 			task->run( );
+// 			TaskThreadPool::sWriterNum--;
+// 			TaskThreadPool::sMutexRW.unlock( );
+// 		}
+// 		else // read lock
+// 		{
+// 			TaskThreadPool::sMutexRW.lock_shared( );
+// 			TaskThreadPool::sReaderNum++;
+// 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, readers=%d",
+// 							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sReaderNum.load() ); 
+// 			task->run( );
+// 			TaskThreadPool::sReaderNum--;
+// 			TaskThreadPool::sMutexRW.unlock_shared( );
+// 		}
 		delete task;
 	}
 	return nullptr;

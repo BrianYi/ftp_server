@@ -18,7 +18,7 @@ void* Dispatcher::entry( )
 	return nullptr;
 }
 
-void Dispatcher::handle_events( ) // demultiplexer
+void Dispatcher::handle_events( )
 {
 	struct epoll_event ev[sMaxevents];
 	for ( ;; )
@@ -34,11 +34,12 @@ void Dispatcher::handle_events( ) // demultiplexer
 			std::unique_lock<std::mutex> lock( mx );
 			auto it = sHandlerTable.find( ev[ i ].data.fd );
 			EventHandler *handler = it->second;
+#if DEBUG_EPOLL
 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "fd %d triggered event=%s, handler events=%s",
 								handler->fSocket,
 								events_str( ev[ i ].events ).c_str( ),
 								events_str( handler->events( ) ).c_str( ) );
-
+#endif
 			// add one task to task thread
 			Task *task = new Task( handler, ev[ i ].events );
 			this->push_to_thread( task );
@@ -62,7 +63,7 @@ void Dispatcher::register_handler( int fd, EventHandler* handler )
 		 * event doesn't exist, register new one
 		 */
 		sHandlerTable.insert( std::make_pair( fd, handler ) );
-#ifdef _DEBUG
+#if DEBUG_EPOLL
 		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "insert fd=%d", fd );
 		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "EPOLL_CTL_ADD fd %d request event=%s, total-fd-num=%d, time=%llu",
 						   fd,
@@ -83,7 +84,7 @@ void Dispatcher::register_handler( int fd, EventHandler* handler )
 		/*
 		 * event exist
 		 */
-#ifdef _DEBUG
+#if DEBUG_EPOLL
 		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "EPOLL_CTL_MOD fd %d request event=%s, total-fd-num=%d, time=%llu",
 						   fd,
 						   events_str( handler->events( ) ).c_str( ),
@@ -108,9 +109,7 @@ void Dispatcher::remove_handler( int fd )
 	auto it = sHandlerTable.find( fd );
 	if ( it == sHandlerTable.end( ) )
 	{
-#ifdef _DEBUG
 		RTMP_LogAndPrintf( RTMP_LOGERROR, "remove_handler error, don't have fd=%d", fd );
-#endif // _DEBUG
 		return;
 	}
 
@@ -123,7 +122,7 @@ void Dispatcher::remove_handler( int fd )
 		return;
 	}
 
-#ifdef _DEBUG
+#if DEBUG_EPOLL
 	RTMP_LogAndPrintf( RTMP_LOGDEBUG, "EPOLL_CTL_DEL: delete fd=%d, event=%s, totoal fd=%d, time=%llu",
 					   it->first,
 					   events_str( it->second->events( ) ).c_str( ),
