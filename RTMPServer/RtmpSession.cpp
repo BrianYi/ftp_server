@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #include "RtmpSession.h"
 #include "Packet.h"
 #include "RtmpSessionTable.h"

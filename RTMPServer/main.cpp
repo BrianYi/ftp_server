@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #include <cstdio>
 #include "Dispatcher.h"
 #include "TaskThread.h"

@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #pragma once
 #include "EventHandler.h"
 class TcpSocket: public EventHandler

@@ -20,7 +20,9 @@
  *  Boston, MA  02110-1301, USA.
  *  http://www.gnu.org/copyleft/lgpl.html
  */
-
+ /*
+  * Copyright (C) 2020 BrianYi, All rights reserved
+  */
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>

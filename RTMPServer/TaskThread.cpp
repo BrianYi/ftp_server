@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #include "TaskThread.h"
 
 std::vector<TaskThread*> TaskThreadPool::sTaskThreadArry;

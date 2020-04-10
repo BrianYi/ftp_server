@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #include "RtmpListenerSocket.h"
 #include "RtmpSession.h"
 #include "RtmpSessionTable.h"
