@@ -31,7 +31,6 @@
 #include <queue>
 #include <mutex>
 
- //#include "rtmp_sys.h"
 #include "Log.h"
 #if WIN32
 #include <process.h>

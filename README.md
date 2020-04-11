@@ -3,6 +3,7 @@
 **Platform**: Linux
 
 RTMP like protocol implementation, but without complicated header, it can be used as realtime transfer.  
+
 they are where it can be used to:  
 
 1. realtime file transfer  
@@ -12,26 +13,29 @@ they are where it can be used to:
 3. etc.  
 
 This project has three part: pusher,server and puller  
+
 if you familiar with rtmp protocal, it would be self-explanatory.  
-**RTMPPusher**: pushing local data to server  
 
-**RTMPServer**: transfer data and copy it to multi-copy to many pullers  
+**[RTMPPusher](https://github.com/BrianYi/RTMPPusher)**: pushing local data to server  
 
-**RTMPPuller**: pulling data from server  
+**[RTMPServer](https://github.com/BrianYi/RTMPServer)**: transfer data and copy it to multi-copy to many pullers  
+
+**[RTMPPuller](https://github.com/BrianYi/RTMPPuller)**: pulling data from server  
 
 # Showcase(30 pusher vs 30 puller)
 ![avatar](./showcase/2020013114584466.gif)
 
-I was tested on my WSL(Ubuntu 18.04.3 LTS)  
+I was tested on my `WSL(Ubuntu 18.04.3 LTS)`  
+
 At first, I start RTMPServer as a background process.  
 
-Then, I use shell script to start 30 pusher and 30 puller simultaneously pushing and pulling 30 files(each file is 13MB) to make a high concurrency test.  
+Then, I use shell script to start `30 pusher and 30 puller` simultaneously pushing and pulling `30` files(each file is 13MB) to make a high concurrency test.  
 
-The script will generate the dir for every pusher&puller and named with a timestamp, all pulling data from pusher would finally received by puller and saved in their dir.
+The script will generate the dir for every `pusher&puller` and named with a `timestamp`, all pulling data from pusher would finally received by puller and saved in their dir.
 
 The Powershell will show the server running log, when and how many pusher has finished pushing data, how many puller has finished pulling data.
 
-Once pusher or puller has finished their job, they will send a fin packet at last and shutdown immediately(marked as lost).
+Once pusher or puller has finished their job, they will send a `fin packet` at last and `shutdown immediately(marked as lost)`.
 
 Finaly, as you see, all the mp4 files is received successfully(each file is 13MB) and without any packet loss.
 

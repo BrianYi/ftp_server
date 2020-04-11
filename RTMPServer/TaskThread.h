@@ -8,7 +8,6 @@
 #include <queue>
 #include <vector>
 #include <mutex>
-#include <shared_mutex>
 #include <atomic>
 
 class TaskThread :
@@ -30,7 +29,6 @@ public:
 	static uint32_t add_thread( uint32_t numThread );
 	static TaskThread* get_thread( uint32_t index );
 	static uint32_t get_num_threads( );
-	static std::shared_mutex sMutexRW;
 	static std::atomic<int32_t> sReaderNum,sWriterNum;
 private:
 	static std::vector<TaskThread*> sTaskThreadArry;

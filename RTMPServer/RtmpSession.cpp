@@ -17,8 +17,8 @@ RtmpSession::RtmpSession( ) :
 	fType = typeUnknown;
 	fState = stateIdle;
 
-	this->set_socket_sndbuf_size( 100 * MAX_PACKET_SIZE );
-	this->set_socket_rcvbuf_size( 100 * MAX_PACKET_SIZE );
+	this->set_socket_sndbuf_size( 1024 * MAX_PACKET_SIZE );
+	this->set_socket_rcvbuf_size( 1024 * MAX_PACKET_SIZE );
 }
 
 RtmpSession::RtmpSession( int32_t fd, Address& address ):
@@ -201,7 +201,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			{
 				if ( pkt.app( ) != this->app( ) )
 				{
-					RTMP_Log( RTMP_LOGERROR, "unknown app %s", pkt.app() );
+					RTMP_Log( RTMP_LOGERROR, "unknown app %s", pkt.app().c_str() );
 					break;
 				}
 

@@ -4,7 +4,6 @@
 #include "TaskThread.h"
 
 std::vector<TaskThread*> TaskThreadPool::sTaskThreadArry;
-std::shared_mutex TaskThreadPool::sMutexRW;
 std::atomic<int32_t> TaskThreadPool::sReaderNum, TaskThreadPool::sWriterNum;
 
 void* TaskThread::entry( )
@@ -25,8 +24,10 @@ void* TaskThread::entry( )
 			EventHandler *h = task->handler( );
 			if ( h->refcount( ) == 1 )
 			{
+#if DEBUG_EVENT
 				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "Kill Event, event ref=%d, delete handler=%x, fd=%d",
 								   h->refcount( ), h, h->fSocket );
+#endif
 				delete h;
 				delete task;
 			}
@@ -37,26 +38,7 @@ void* TaskThread::entry( )
 		lock.unlock( );
 
 		task->run( );
-// 		if (task->flags() & EPOLLIN ) // write lock
-// 		{
-// 			TaskThreadPool::sMutexRW.lock( );
-// 			TaskThreadPool::sWriterNum++;
-// 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, writers=%d",
-// 							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sWriterNum.load() );
-// 			task->run( );
-// 			TaskThreadPool::sWriterNum--;
-// 			TaskThreadPool::sMutexRW.unlock( );
-// 		}
-// 		else // read lock
-// 		{
-// 			TaskThreadPool::sMutexRW.lock_shared( );
-// 			TaskThreadPool::sReaderNum++;
-// 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "current thread=%llu fTaskQueue.size=%u, readers=%d",
-// 							   this->handle( ), fTaskQueue.size( ), TaskThreadPool::sReaderNum.load() ); 
-// 			task->run( );
-// 			TaskThreadPool::sReaderNum--;
-// 			TaskThreadPool::sMutexRW.unlock_shared( );
-// 		}
+
 		delete task;
 	}
 	return nullptr;
