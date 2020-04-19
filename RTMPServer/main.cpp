@@ -36,7 +36,7 @@ int main( int argc, char* argv[ ] )
 #endif
 	RTMP_Log( RTMP_LOGDEBUG, "==============================" );
 	RTMP_Log( RTMP_LOGDEBUG, "log file:\trtmp_server.dump" );
-	RTMP_Log( RTMP_LOGDEBUG, "log timestamp:\t%lld", get_timestamp_ms( ) );
+	RTMP_Log( RTMP_LOGDEBUG, "log timestamp:\t%lld", (long long int)get_timestamp_ms( ) );
 	RTMP_Log( RTMP_LOGDEBUG, "log date:\t%d-%d-%d %d:%d:%d",
 			  tm.wYear,
 			  tm.wMonth,

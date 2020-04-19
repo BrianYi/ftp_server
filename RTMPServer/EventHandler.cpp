@@ -43,8 +43,8 @@ void EventHandler::kill_event( )
 
 std::string events_str( uint32_t events )
 {
-#ifdef _DEBUG
 	std::string evstr = "";
+#ifdef _DEBUG
 	if ( events & EPOLLIN )
 		evstr += "EPOLLIN ";
 	if ( events & EPOLLOUT )

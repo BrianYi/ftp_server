@@ -44,5 +44,7 @@ enum
 	Ack,
 	Fin,
 	Err,
+	OnlineStreams,
+	BuildConnect,
 	TypeNum
 };

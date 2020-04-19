@@ -96,9 +96,6 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			this->recv_report( &pkt );
 #endif // KEEP_TRACK_PACKET_RCV
 			
-
-			//this->fLastRecvTime = get_timestamp_ms( );
-
 			switch (pkt.type())
 			{
 			case CreateStream:
@@ -246,7 +243,7 @@ int32_t RtmpSession::handle_event( uint32_t flags )
 			this->queue_pop( );
 			PACKET netPkt = ptrPkt->raw_net_packet( );
 
-			int sendSize = send( ( char * ) &netPkt, MAX_PACKET_SIZE, Socket::NonBlocking );
+			int sendSize = this->send( ( char * ) &netPkt, MAX_PACKET_SIZE, Socket::NonBlocking );
 
 			if ( sendSize < 0 )
 			{
