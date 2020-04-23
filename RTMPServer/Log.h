@@ -32,10 +32,6 @@
 #include <winsock2.h>
 #endif
 
-#ifdef _DEBUG
-#define _NOHEXSTR
-#endif
-
 typedef enum
 {
 	RTMP_LOGCRIT = 0, RTMP_LOGERROR, RTMP_LOGWARNING, RTMP_LOGINFO,

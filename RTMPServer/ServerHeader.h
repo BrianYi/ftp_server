@@ -4,9 +4,10 @@
 #pragma once
 #include "common.h"
 #include "Log.h"
+#include <assert.h>
 
 // packet info
-#define KEEP_TRACK_PACKET			0
+#define KEEP_TRACK_PACKET			1
 // packet hex info
 #define KEEP_TRACK_PACKET_HEX		0
 // only debug mode use, to caculate time wasting
@@ -19,13 +20,13 @@
 
 
 #if KEEP_TRACK_PACKET
-#define KEEP_TRACK_PACKET_SND	1
+#define KEEP_TRACK_PACKET_SND	0
 #define KEEP_TRACK_PACKET_RCV	1
 #endif
 
 #if KEEP_TRACK_PACKET_HEX
-#define KEEP_TRACK_PACKET_SND_HEX
-#define KEEP_TRACK_PACKET_RCV_HEX
+#define KEEP_TRACK_PACKET_SND_HEX	0
+#define KEEP_TRACK_PACKET_RCV_HEX	1
 #endif
 
 const uint32_t RECV_BUF_SIZE = 10 * 1024u;
@@ -35,16 +36,20 @@ const uint32_t SEND_BUF_SIZE = 10 * 1024u;
 #define SERVER_PORT_TCP	5566
 
 
-enum
+enum RtmpType
 {
 	CreateStream,
-	Play,
+//	Play,
 	Push,
 	Pull,
 	Ack,
 	Fin,
 	Err,
-	OnlineStreams,
+	OnlineSessions,
+	NewSession,
+	LostSession,
 	BuildConnect,
+	Accept,
+	Refuse,
 	TypeNum
 };

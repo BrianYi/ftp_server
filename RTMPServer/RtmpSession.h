@@ -26,14 +26,15 @@ public:
 	enum
 	{
 		typeUnknown,
-		typePusher,
-		typePuller
+		typePusher = 0x00000001,
+		typePuller = 0x00000002,
 	};
 	enum
 	{
 		stateIdle,
-		statePushing,
-		statePulling
+		stateConnected = 0x00000001,
+		statePushing = 0x00000002,
+		statePulling = 0x00000004,
 	};
 	RtmpSession( );
 	RtmpSession( int32_t fd, Address& address );
@@ -46,8 +47,8 @@ public:
 	int64_t accept_time( ) { return fAcceptTime; }
 	void set_timebase( int32_t timebase ) { fTimebase = timebase; }
 	int32_t timebase( ) { return fTimebase; }
-	void set_type( int32_t type ) { fType = type; }
-	int32_t type( ) { return fType; }
+	//void set_type( int32_t type ) { fType = type; }
+	//int32_t type( ) { return fType; }
 	void queue_push( Packet* ptrPkt )
 	{
 		std::unique_lock<std::mutex> lock( this->fQueueMx );
@@ -74,8 +75,8 @@ protected:
 	std::string fApp;
 	int64_t fAcceptTime;
 	int32_t fTimebase;
-	int32_t fType;
-	int32_t fState;
+	//int32_t fType;
+	//int32_t fState;
 	std::priority_queue<Packet*, std::vector<Packet*>, cmp> fPacketQueue;
 	std::mutex fQueueMx;
 	std::mutex fReadMx;

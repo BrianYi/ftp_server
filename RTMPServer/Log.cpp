@@ -219,12 +219,6 @@ void RTMP_LogHex( int level, const uint8_t *data, unsigned long len )
 
 void RTMP_LogHexStr( int level, const uint8_t *data, unsigned long len )
 {
-#ifdef _DEBUG
-#ifdef _NOHEXSTR
-	return;
-#endif
-#endif // _DEBUG
-
 	if ( !startThread ) return;
 #define BP_OFFSET 9
 #define BP_GRAPH 60

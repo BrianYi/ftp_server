@@ -7,9 +7,9 @@ std::mutex RtmpSessionTable::mx;
 /*
  * static variable declaration
  */
-RtmpSessionTable::RtmpSessionArryType RtmpSessionTable::sRtmpSessionArry;	// store all session
-RtmpSessionTable::RtmpSessionUnorderedMapType RtmpSessionTable::sRtmpPusherSessionTable;		// store pusher app-session
-RtmpSessionTable::RtmpSessionUnorderedMultimapType RtmpSessionTable::sRtmpPullerSessionTable;	// store puller app-session
+//RtmpSessionTable::RtmpSessionArryType RtmpSessionTable::sRtmpSessionArry;	// store all session
+RtmpSessionTable::RtmpSessionUnorderedMapType RtmpSessionTable::sRtmpSessionTable;		// store pusher app-session
+RtmpSessionTable::RtmpSessionUnorderedMultimapType RtmpSessionTable::sRtmpPairSessionTable;	// store puller app-session
 
 RtmpSessionTable::RtmpSessionTable( )
 {
