@@ -2,13 +2,11 @@
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
 #pragma once
+#include "PlatformHeader.h"
 #include "Thread.h"
 #include "EventHandler.h"
 #include "TaskThread.h"
 #include "Task.h"
-#include <sys/epoll.h>
-#include <unordered_map>
-#include <mutex>
 class Dispatcher :
 	public Thread
 { 
@@ -20,8 +18,8 @@ public:
 	static void register_handler( int fd, EventHandler* handler);
 	static void remove_handler( int fd );
 	static bool exist_handler( int fd );
-private:
 	static void push_to_thread( Task *task );
+private:
 	static int sFdEpoll;
 	static int sMaxevents;
 	static uint32_t sThreadPicker;

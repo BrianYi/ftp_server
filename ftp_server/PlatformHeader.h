@@ -5,6 +5,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
+#include <assert.h>
+#include <unordered_map>
+#include <mutex>
+#include <atomic>
+#include <vector>
+#include <queue>
+#include <algorithm>
 
 #if __linux__
 #include <stdint-gcc.h>
@@ -16,6 +23,8 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <endian.h>
+#include <pthread.h>
+#include <sys/epoll.h>
 #endif
 
 #if __linux__

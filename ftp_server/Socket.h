@@ -2,8 +2,7 @@
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
 #pragma once
-#include "common.h"
-#include "Address.h"
+#include "PlatformHeader.h"
 class Socket
 { 
 public:

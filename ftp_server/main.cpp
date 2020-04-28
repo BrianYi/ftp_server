@@ -2,10 +2,13 @@
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
 #include <cstdio>
+#include "ServerHeader.h"
 #include "Dispatcher.h"
 #include "TaskThread.h"
-#include "RtmpListenerSocket.h"
-
+#include "FTPListenerSocket.h"
+#include "Log.h"
+#include <sys/stat.h>
+#include <dirent.h>
 
 int main( int argc, char* argv[ ] )
 {
@@ -16,7 +19,7 @@ int main( int argc, char* argv[ ] )
 	if ( argv[ 1 ] )
 		dumpfile = fopen( argv[ 1 ], "a+" );
 	else
-		dumpfile = fopen( "rtmp_server.dump", "a+" );
+		dumpfile = fopen( "ftp_server.dump", "a+" );
 	RTMP_LogSetOutput( dumpfile );
 	RTMP_LogSetLevel( RTMP_LOGALL );
 	RTMP_LogThreadStart( );
@@ -35,7 +38,7 @@ int main( int argc, char* argv[ ] )
 #define wMilliseconds 0
 #endif
 	RTMP_Log( RTMP_LOGDEBUG, "==============================" );
-	RTMP_Log( RTMP_LOGDEBUG, "log file:\trtmp_server.dump" );
+	RTMP_Log( RTMP_LOGDEBUG, "log file:\tftp_server.dump" );
 	RTMP_Log( RTMP_LOGDEBUG, "log timestamp:\t%lld", (long long int)get_timestamp_ms( ) );
 	RTMP_Log( RTMP_LOGDEBUG, "log date:\t%d-%d-%d %d:%d:%d",
 			  tm.wYear,
@@ -43,6 +46,23 @@ int main( int argc, char* argv[ ] )
 			  tm.wDay,
 			  tm.wHour, tm.wMinute, tm.wSecond );
 	RTMP_Log( RTMP_LOGDEBUG, "==============================" );
+
+	/*
+	 * Create ftp shared dir
+	 */
+	std::string homedir = getenv( "HOME" );
+	std::string ftpHome = homedir + "/ftp_shared";
+	DIR *dir = opendir( ftpHome.c_str() );
+	if ( dir )
+		closedir( dir );
+	else
+	{
+		if ( mkdir( ftpHome.c_str(), S_IRWXU | S_IRWXG | S_IRWXO ) != 0 )
+		{
+			printf( "Cannot create default ftp shared path %s: %d\n", ftpHome.c_str(), errno );
+			exit( EXIT_FAILURE );
+		}
+	}
 
 	/*
 	 * Dispatcher thread start
@@ -55,17 +75,20 @@ int main( int argc, char* argv[ ] )
 	 */
 	uint32_t num_of_processors = sysconf( _SC_NPROCESSORS_ONLN );
 	TaskThreadPool::add_thread( num_of_processors );
-	
-	RtmpListenerSocket *rtmpListenerSocket = new RtmpListenerSocket;
-	rtmpListenerSocket->listen( SERVER_PORT_TCP, 64 );
-	rtmpListenerSocket->request_event( EPOLLIN | EPOLLET );
+
+	/*
+	 * Register listener
+	 */
+	FTPListenerSocket *ftpListenerSocket = new FTPListenerSocket(ftpHome);
+	ftpListenerSocket->listen( SERVER_COMMAND_PORT, 64 );
+	ftpListenerSocket->request_event( EPOLLIN );
 
 	for ( ;; )
 	{
-		sleep( 1000 );
+		sleep( 5 );
 	}
 
-	delete rtmpListenerSocket;
+	delete ftpListenerSocket;
 	delete dispatcher;
-    return 0;
+	exit( EXIT_SUCCESS );
 }

@@ -2,10 +2,8 @@
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
 #pragma once
-#include "ServerHeader.h"
+#include "PlatformHeader.h"
 #include "Socket.h"
-#include <mutex>
-#include <atomic>
 
 class EventHandler: public Socket
 { 
@@ -29,8 +27,6 @@ public:
 	void dec_refcount( ) { fRefCount--; }
 protected:
 	uint32_t fEvents;
-	//std::mutex fReadMx;
-	//std::mutex fWriteMx;
 	bool fIsDead;
 	std::atomic<int32_t> fRefCount;
 };

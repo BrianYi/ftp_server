@@ -2,6 +2,7 @@
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
 #include "TcpSocket.h"
+#include "ServerHeader.h"
 
 TcpSocket::TcpSocket( ) :
 	EventHandler( SOCK_STREAM, IPPROTO_TCP, Blocking )
@@ -45,7 +46,7 @@ void TcpSocket::listen( const uint16_t& inPort, const uint32_t& inQueueLength )
 	}
 }
 
-int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType/* = Blocking*/ )
+int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType )
 {
 	if ( this->fBinded )
 	{
@@ -67,7 +68,7 @@ int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType/* = Blocki
 	return ret;
 }
 
-int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOType inIOType/* = Blocking*/ )
+int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOType inIOType )
 {
 	if ( this->fBinded )
 	{
@@ -82,15 +83,17 @@ int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOT
 
 	Address address( inIP, inPort );
 	int32_t ret = ::connect( this->fSocket, ( const sockaddr* ) &address, sizeof( struct sockaddr ) );
-	if ( ret == 0 )
+	if ( ret < 0 )
 	{
-		this->fAddress = address;
-		this->fBinded = true;
+		printf( "Connect error: %d\n", errno );
+		return ret;
 	}
+	this->fAddress = address;
+	this->fBinded = true;
 	return ret;
 }
 
-TcpSocket* TcpSocket::accept( IOType inIOType/* = Blocking*/ )
+TcpSocket* TcpSocket::accept( IOType inIOType )
 {
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );

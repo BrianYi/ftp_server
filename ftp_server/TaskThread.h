@@ -3,12 +3,7 @@
  */
 #pragma once
 #include "Thread.h"
-#include "EventHandler.h"
 #include "Task.h"
-#include <queue>
-#include <vector>
-#include <mutex>
-#include <atomic>
 
 class TaskThread :
 	public Thread

@@ -2,6 +2,7 @@
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
 #include "TaskThread.h"
+#include "EventHandler.h"
 
 std::vector<TaskThread*> TaskThreadPool::sTaskThreadArry;
 std::atomic<int32_t> TaskThreadPool::sReaderNum, TaskThreadPool::sWriterNum;

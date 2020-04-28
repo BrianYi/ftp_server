@@ -1,6 +1,7 @@
 #include "Dispatcher.h"
 //#include "Task.h"
 #include "TaskThread.h"
+#include "Log.h"
 
 int Dispatcher::sFdEpoll = epoll_create( 64 );// size is ignored
 int Dispatcher::sMaxevents = 64;
