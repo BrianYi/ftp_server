@@ -5,26 +5,36 @@
 DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir ) :
 	TcpSocket()
 {
+#if DEBUG_DataTransferSession
+	printf( "new DataTransferSession %x\n", this );
+#endif
 	fAcceptTime = 0;
 	fFTPSession = ftpSession;
 	fCurrentDir = currentDir;
 	fReadFinished = false;
+	fFileDesc = -1;
 	//fstate = UnAuthorized;
 }
 
 DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir, int32_t fd, Address& address ) :
 	TcpSocket( fd, true, address )
 {
+#if DEBUG_DataTransferSession
+	printf( "new DataTransferSession %x\n", this );
+#endif
 	fAcceptTime = 0;
 	fFTPSession = ftpSession;
 	fCurrentDir = currentDir;
 	fReadFinished = false;
+	fFileDesc = -1;
 	//fstate = UnAuthorized;
 }
 
 DataTransferSession::~DataTransferSession()
 {
-
+#if DEBUG_DataTransferSession
+	printf( "del DataTransferSession %x\n", this );
+#endif
 }
 
 int32_t DataTransferSession::handle_event( uint32_t flags )
@@ -47,33 +57,14 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 		 */
 		std::string relPath = "/" + fFilePath;
 		std::string absFilePath = fCurrentDir + relPath;
-		
-		int fd = -1;
-		if ( access( absFilePath.c_str(), F_OK ) != -1 )
-			fd = ::open( absFilePath.c_str(), O_WRONLY | O_TRUNC | O_EXCL );
-		else
-			fd = ::open( absFilePath.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0777 );
 
-		if ( fd == -1 )
-		{
-			std::string retStr =
-				"553-Requested action not taken.\n"
-				"553 File name not allowed.\n";
-			fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
-			fFTPSession->request_event( EPOLLOUT );
-
-			this->kill_event();
-			return -1;
-		}
-		::close( fd );
-		
 		/*
 		 * receive file data
 		 */
 		int32_t recvSize;
 		for ( ;; )
 		{
-			recvSize = this->recv( buf, MAX_BODY_SIZE, Socket::Blocking );
+			recvSize = this->recv( buf, MAX_BODY_SIZE, Socket::NonBlocking );
 			// peer connection lost
 			if ( recvSize <= 0 )
 			{
@@ -86,17 +77,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					return -1;
 				}
 				else // <0 is recv buffer is empty, EAGAIN
-				{
-					assert( false );
-// 					std::string retStr = "426 Connection closed; transfer aborted.\n";
-// 					fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0) );
-// 					fFTPSession->request_event( EPOLLOUT );
-// 
-// 					// close file
-// 					::close( fFileDesc );
-
-					return -1;
-				}
+					break;
 			}
 			else
 			{
@@ -124,18 +105,13 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 		if ( fIsDead )
 			return 0;
 
-
 		std::string relPath = "/" + fFilePath;
 		std::string absFilePath = fCurrentDir + relPath;
-		bool isOpenedFile = false;
-		int fd = -1;
+
 		for ( ;; )
 		{
 			if ( this->empty() )
-			{
-				msleep( 1 );
-				continue;
-			}
+				break;
 
 			Packet *ptrPacket = this->front();
 			this->pop();
@@ -165,7 +141,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					fFTPSession->request_event( EPOLLOUT );
 
 					// close file
-					::close( fd );
+					::close( fFileDesc );
 
 					// kill event
 					this->kill_event();
@@ -180,17 +156,23 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			// send or write packet
 			if ( ptrPacket->type() == STOR )
 			{
-				if ( !isOpenedFile )
+				if ( fFileDesc == -1 )
 				{
 					if ( access( absFilePath.c_str(), F_OK ) != -1 )
-						fd = ::open( absFilePath.c_str(), O_WRONLY | O_TRUNC | O_EXCL );
+						fFileDesc = ::open( absFilePath.c_str(), O_WRONLY | O_TRUNC | O_EXCL );
 					else
-						fd = ::open( absFilePath.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0777 );
-					isOpenedFile = true;
-					assert( fd != -1 );
+						fFileDesc = ::open( absFilePath.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0777 );
+					if ( fFileDesc == -1 )
+					{
+						std::string retStr = "450 Requested file action not taken.\n";
+						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
+						fFTPSession->request_event( EPOLLOUT );
+						this->kill_event();
+						return -1;
+					}
 				}
 				// save data
-				ssize_t writeSize = write( fd, ptrPacket->body(), ptrPacket->body_size() );
+				ssize_t writeSize = write( fFileDesc, ptrPacket->body(), ptrPacket->body_size() );
 				if ( writeSize == -1 )
 					printf( "errno=%d\n", errno );
 				assert( writeSize == ptrPacket->body_size() );
@@ -210,7 +192,6 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 
 			delete ptrPacket;
 		}
-		printf( "Lock out %d\n", this );
 	}
 
 	return 0;

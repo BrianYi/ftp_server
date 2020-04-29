@@ -12,3 +12,6 @@ const uint32_t SEND_BUF_SIZE = 10 * 1024u;
 #define SERVER_IP			"0.0.0.0"
 #define SERVER_DATA_PORT	20
 #define SERVER_COMMAND_PORT	21
+
+#define DEBUG_DataTransferSession	1
+#define DEBUG_FTPSession			1

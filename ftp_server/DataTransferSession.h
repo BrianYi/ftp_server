@@ -42,6 +42,7 @@ private:
 	uint32_t	fstate;
 	std::string fFilePath;
 	std::string fCurrentDir;
+	int32_t fFileDesc;
 	bool fReadFinished;
 };
 

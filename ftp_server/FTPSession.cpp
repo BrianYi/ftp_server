@@ -6,6 +6,9 @@
 FTPSession::FTPSession():
 	TcpSocket()
 {
+#if DEBUG_DataTransferSession
+	printf( "new FTPSession %x\n", this );
+#endif
 	fAcceptTime = 0;
 	fstate = UnAuthorized;
 }
@@ -13,13 +16,18 @@ FTPSession::FTPSession():
 FTPSession::FTPSession( int32_t fd, Address& address ):
 	TcpSocket( fd, true, address )
 {
+#if DEBUG_DataTransferSession
+	printf( "new FTPSession %x\n", this );
+#endif
 	fAcceptTime = 0;
 	fstate = UnAuthorized;
 }
 
 FTPSession::~FTPSession()
 {
-
+#if DEBUG_DataTransferSession
+	printf( "del FTPSession %x\n", this );
+#endif
 }
 
 int32_t FTPSession::handle_event( uint32_t flags )
