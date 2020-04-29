@@ -60,7 +60,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
-    <RemoteRootDir>~brianyi/projects</RemoteRootDir>
+    <RemoteRootDir>~/projects</RemoteRootDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -108,6 +108,7 @@
     <ClInclude Include="Queue.h" />
     <ClInclude Include="ServerHeader.h" />
     <ClInclude Include="Socket.h" />
+    <ClInclude Include="Stack.h" />
     <ClInclude Include="TaskThread.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="TcpSocket.h" />

@@ -3,6 +3,7 @@
 #include "TcpSocket.h"
 #include "Packet.h"
 #include "Queue.h"
+#include "Stack.h"
 
 class DataTransferSession;
 
@@ -26,25 +27,26 @@ public:
 	int64_t accept_time() { return fAcceptTime; }
 	void push( Packet* ptrPacket )
 	{
-		fPriSendQueue.push( ptrPacket );
+		fSendPriQueue.push( ptrPacket );
 	}
 	Packet* front()
 	{
-		return fPriSendQueue.front();
+		return fSendPriQueue.front();
 	}
 	void pop()
 	{
-		fPriSendQueue.pop();
+		fSendPriQueue.pop();
 	}
 	bool empty()
 	{
-		return fPriSendQueue.empty();
+		return fSendPriQueue.empty();
 	}
 	void set_current_dir( std::string dir ) { fCurDir = dir; }
 	std::string current_dir() { return fCurDir; }
+	void disconnect();
 private:
-	PriorityQueue<Packet*> fPriSendQueue;
-	Queue<DataTransferSession*> fDataTransSessionQueue;
+	PriorityQueue<Packet*> fSendPriQueue;
+	Stack<DataTransferSession*> fDataTransSessionStack;
 	int64_t fAcceptTime;
 	std::mutex fReadMx;
 	std::mutex fWriteMx;

@@ -4,18 +4,20 @@
 #pragma once
 #include "Thread.h"
 #include "Task.h"
+#include "Queue.h"
 
 class TaskThread :
 	public Thread
 { 
 public:
-	TaskThread( ) { };
+	TaskThread( ) { fThrowOutPacketNum  = 0;};
 	~TaskThread( ) { };
 	void* entry( );
 	void push( Task* task );
 private:
-	std::queue<Task*> fTaskQueue;
-	std::mutex mx;
+	PriorityQueue<Task*> fTaskPriQueue;
+	std::atomic<uint64_t> fThrowOutPacketNum;
+	//std::mutex mx;
 };
 
 class TaskThreadPool

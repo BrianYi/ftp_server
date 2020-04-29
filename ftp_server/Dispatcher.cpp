@@ -7,7 +7,8 @@ int Dispatcher::sFdEpoll = epoll_create( 64 );// size is ignored
 int Dispatcher::sMaxevents = 64;
 uint32_t Dispatcher::sThreadPicker = 0;
 std::unordered_map<int, EventHandler*> Dispatcher::sHandlerTable;
-std::mutex Dispatcher::mx;
+std::mutex Dispatcher::sHandlerTableMx;
+std::mutex Dispatcher::sThreadPickerMx;
 
 Dispatcher::Dispatcher( )
 {
@@ -32,7 +33,7 @@ void Dispatcher::handle_events( )
 		}
 		for ( int i = 0; i < nfds; ++i )
 		{
-			std::unique_lock<std::mutex> lock( mx );
+			std::unique_lock<std::mutex> locker( sHandlerTableMx );
 			auto it = sHandlerTable.find( ev[ i ].data.fd );
 			EventHandler *handler = it->second;
 #if DEBUG_EPOLL
@@ -54,7 +55,7 @@ void Dispatcher::register_handler( int fd, EventHandler* handler )
 	ev.data.fd = handler->fSocket;
 	ev.events = handler->events( );
 	
-	std::unique_lock<std::mutex> lock( mx );
+	std::unique_lock<std::mutex> locker( sHandlerTableMx );
 
 	// judge if event exist
 	auto it = sHandlerTable.find( fd );
@@ -105,7 +106,7 @@ void Dispatcher::register_handler( int fd, EventHandler* handler )
 
 void Dispatcher::remove_handler( int fd )
 {
-	std::unique_lock<std::mutex> lock( mx );
+	std::unique_lock<std::mutex> locker( sHandlerTableMx );
 
 	auto it = sHandlerTable.find( fd );
 	if ( it == sHandlerTable.end( ) )

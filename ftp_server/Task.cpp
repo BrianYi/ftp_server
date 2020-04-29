@@ -34,8 +34,9 @@ Task::~Task( )
 // #endif // _DEBUG
 }
 
-void Task::run( )
+int32_t Task::run( )
 {
 	if (!(fFlags & killEvent))
-		fHandler->handle_event(fFlags );
+		return fHandler->handle_event(fFlags );
+	return -1;
 }

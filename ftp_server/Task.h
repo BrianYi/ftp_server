@@ -15,10 +15,11 @@ public:
 	};
 	Task( EventHandler *handler, uint32_t flags );
 	~Task( );
-	void run( );
+	int32_t run( );
 	uint32_t flags( );
 	void set_flags( uint32_t flags );
 	EventHandler *handler( );
+	void set_timestamp( const uint64_t& time ) { fTimestamp = time; }
 	uint64_t timestamp( ) { return fTimestamp; }
 protected:
 	EventHandler *fHandler;

@@ -19,22 +19,22 @@ public:
 	int64_t accept_time() { return fAcceptTime; }
 	void push( Packet* ptrPacket )
 	{
-		fPriSendQueue.push( ptrPacket );
+		fSendPriQueue.push( ptrPacket );
 	}
 	Packet* front()
 	{
-		return fPriSendQueue.front();
+		return fSendPriQueue.front();
 	}
 	void pop()
 	{
-		fPriSendQueue.pop();
+		fSendPriQueue.pop();
 	}
 	bool empty()
 	{
-		return fPriSendQueue.empty();
+		return fSendPriQueue.empty();
 	}
 private:
-	PriorityQueue<Packet*> fPriSendQueue;
+	PriorityQueue<Packet*> fSendPriQueue;
 	FTPSession *fFTPSession;
 	int64_t fAcceptTime;
 	std::mutex fReadMx;
@@ -43,6 +43,6 @@ private:
 	std::string fFilePath;
 	std::string fCurrentDir;
 	int32_t fFileDesc;
-	bool fReadFinished;
+	bool fRcvFinished;
+	int32_t fType;
 };
-

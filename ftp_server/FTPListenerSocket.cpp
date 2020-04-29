@@ -52,7 +52,7 @@ int32_t FTPListenerSocket::handle_event( uint32_t flags )
 		// request new connect event
 		this->request_event( EPOLLIN );
 	}
-	return 0;
+	return -1;
 }
 
 FTPSession* FTPListenerSocket::accept( IOType inIOType /*= Blocking */ )

@@ -1,6 +1,5 @@
 #pragma once
 #include "ServerHeader.h"
-#include "Packet.h"
 
 template <class T>
 class cmp
@@ -14,6 +13,9 @@ public:
 	}
 };
 
+/*
+ * multi-thread safe
+ */
 template <class T>
 class Queue
 {
@@ -27,6 +29,10 @@ public:
 	{
 		return fElemQueue.front();
 	}
+	T back()
+	{
+		return fElemQueue.back();
+	}
 	void pop()
 	{
 		std::unique_lock<std::mutex> lock( this->fQueueMx );
@@ -36,11 +42,18 @@ public:
 	{
 		return fElemQueue.empty();
 	}
+	size_t size()
+	{
+		return fElemQueue.size();
+	}
 private:
 	std::queue<T> fElemQueue;
 	std::mutex fQueueMx;
 };
 
+/*
+ * multi-thread safe
+ */
 template <class T>
 class PriorityQueue
 {
@@ -54,6 +67,10 @@ public:
 	{
 		return fElemQueue.top();
 	}
+	T back()
+	{
+		return fElemQueue.back();
+	}
 	void pop()
 	{
 		std::unique_lock<std::mutex> lock( this->fQueueMx );
@@ -62,6 +79,10 @@ public:
 	bool empty()
 	{
 		return fElemQueue.empty();
+	}
+	size_t size()
+	{
+		return fElemQueue.size();
 	}
 private:
 	std::priority_queue<T, std::vector<T>, cmp<T>> fElemQueue;

@@ -11,44 +11,86 @@ void* TaskThread::entry( )
 {
 	for ( ;; )
 	{
-		if ( fTaskQueue.empty( ) )
+		if ( fTaskPriQueue.empty( ) )
 		{
 			::usleep( 100 );
 			continue;
 		}
 
-		std::unique_lock<std::mutex> lock( mx );
-		Task *task = fTaskQueue.front( );
-		fTaskQueue.pop( );
+		/*
+		 * get out one task
+		 */
+		Task *task = fTaskPriQueue.front( );
+		fTaskPriQueue.pop( );
+
+		/*
+		 * judge if event should be killed?
+		 */
 		if ( task->flags() & Task::killEvent )
 		{
-			EventHandler *h = task->handler( );
+			//std::unique_lock<std::mutex> lock( mx );
+			EventHandler *h = task->handler();
 			if ( h->refcount( ) == 1 )
 			{
-#if DEBUG_EVENT
-				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "Kill Event, event ref=%d, delete handler=%x, fd=%d",
+#if DEBUG_TaskThread
+				printf( "Kill Event, event ref=%d, delete handler=%x, fd=%d\n",
 								   h->refcount( ), h, h->fSocket );
 #endif
 				delete h;
 				delete task;
 			}
 			else
-				fTaskQueue.push( task );
+				fTaskPriQueue.push( task );
 			continue;
 		}
-		lock.unlock( );
 
-		task->run( );
+#if DEBUG_TaskThread
+		printf( "threadId=%d, taskQueue.size=%d, throw=%lld\n",
+			this, fTaskPriQueue.size(), fThrowOutPacketNum.load() );
+#endif
 
-		delete task;
+		/*
+		 * has to wait a few time to run this task
+		 */
+		uint64_t curTimestamp = get_timestamp_ms();
+		int64_t waitForTime = task->timestamp() - curTimestamp;
+		if ( waitForTime > 0 )
+		{
+			fTaskPriQueue.push( task );
+			::usleep( 100 );
+			continue;
+		}
+		else
+		{
+			if ( -waitForTime > TASK_TIMEOUT )
+			{
+				fThrowOutPacketNum++;
+				delete task;
+				continue;
+			}
+		}
+
+		/*
+		 * run this task, return value means:
+		 * < 0 : finished, delete this task
+		 * >=0 : wait a few time, then re-run this task
+		 */
+		waitForTime = task->run();
+		if ( waitForTime < 0 )
+			delete task;
+		else
+		{
+			uint64_t nextTime = get_timestamp_ms() + waitForTime;
+			task->set_timestamp( nextTime );
+			fTaskPriQueue.push( task );
+		}
 	}
 	return nullptr;
 }
 
 void TaskThread::push( Task* task )
 {
-	std::unique_lock<std::mutex> lock( mx );
-	fTaskQueue.push( task );
+	fTaskPriQueue.push( task );
 }
 
 uint32_t TaskThreadPool::add_thread( uint32_t numThread )

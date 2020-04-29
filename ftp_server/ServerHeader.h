@@ -13,5 +13,19 @@ const uint32_t SEND_BUF_SIZE = 10 * 1024u;
 #define SERVER_DATA_PORT	20
 #define SERVER_COMMAND_PORT	21
 
-#define DEBUG_DataTransferSession	1
-#define DEBUG_FTPSession			1
+#define TASK_TIMEOUT		300
+
+/* every read or write task time spending should be limited to this ms */
+#define DEBUG_RW_TIME_MAX	10
+
+#define DEBUG_DataTransferSession	0
+#if DEBUG_DataTransferSession
+#define DEBUG_DataTransferSession_RW_TIME	1
+#endif
+
+#define DEBUG_FTPSession			0
+#if DEBUG_FTPSession
+#define DEBUG_FTPSession_RW_TIME	1
+#endif
+
+#define DEBUG_TaskThread			0
