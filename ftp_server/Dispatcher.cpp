@@ -5,7 +5,7 @@
 
 int Dispatcher::sFdEpoll = epoll_create( 64 );// size is ignored
 int Dispatcher::sMaxevents = 64;
-uint32_t Dispatcher::sThreadPicker = 0;
+//uint32_t Dispatcher::sThreadPicker = 0;
 std::unordered_map<int, EventHandler*> Dispatcher::sHandlerTable;
 std::mutex Dispatcher::sHandlerTableMx;
 std::mutex Dispatcher::sThreadPickerMx;

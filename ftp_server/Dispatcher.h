@@ -22,7 +22,7 @@ public:
 private:
 	static int sFdEpoll;
 	static int sMaxevents;
-	static uint32_t sThreadPicker;
+	//static uint32_t sThreadPicker;
 	static std::mutex sHandlerTableMx;
 	static std::mutex sThreadPickerMx;
 	static std::unordered_map<int, EventHandler*> sHandlerTable; // fd-handler
@@ -31,8 +31,8 @@ private:
 inline void Dispatcher::push_to_thread( Task *task )
 {
 	std::unique_lock<std::mutex> locker( sThreadPickerMx );
-	sThreadPicker++;
-	sThreadPicker %= TaskThreadPool::get_num_threads( );
-	TaskThread *taskThread = TaskThreadPool::get_thread( sThreadPicker );
+	//sThreadPicker++;
+	//sThreadPicker %= TaskThreadPool::get_num_threads( );
+	TaskThread *taskThread = TaskThreadPool::pick_thread();
 	taskThread->push( task );
 }

@@ -13,7 +13,7 @@ void* TaskThread::entry( )
 	{
 		if ( fTaskPriQueue.empty( ) )
 		{
-			::msleep( 1 );
+			::usleep( 10 );
 			continue;
 		}
 
@@ -57,7 +57,7 @@ void* TaskThread::entry( )
 		if ( waitForTime > 0 )
 		{
 			fTaskPriQueue.push( task );
-			::msleep( 1 );
+			::usleep( 10 );
 			continue;
 		}
 		else
@@ -90,11 +90,6 @@ void* TaskThread::entry( )
 	return nullptr;
 }
 
-void TaskThread::push( Task* task )
-{
-	fTaskPriQueue.push( task );
-}
-
 uint32_t TaskThreadPool::add_thread( uint32_t numThread )
 {
 	for ( uint32_t i = 0; i < numThread; ++i )
@@ -116,4 +111,22 @@ TaskThread* TaskThreadPool::get_thread( uint32_t index )
 uint32_t TaskThreadPool::get_num_threads( )
 {
 	return sTaskThreadArry.size( );
+}
+
+TaskThread* TaskThreadPool::pick_thread()
+{
+	size_t minQueueSize = (size_t)(-1);
+	TaskThread *taskThread = nullptr;
+	TaskThread *pickedThread = nullptr;
+	for ( auto it = sTaskThreadArry.begin();
+		it != sTaskThreadArry.end(); ++it )
+	{
+		taskThread = *it;
+		if ( minQueueSize > taskThread->size() )
+		{
+			minQueueSize = taskThread->size();
+			pickedThread = taskThread;
+		}
+	}
+	return pickedThread;
 }
