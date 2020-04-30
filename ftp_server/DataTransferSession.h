@@ -37,8 +37,8 @@ private:
 	PriorityQueue<Packet*> fSendPriQueue;
 	FTPSession *fFTPSession;
 	int64_t fAcceptTime;
-	std::mutex fReadMx;
-	std::mutex fWriteMx;
+	std::timed_mutex fReadMx;
+	std::timed_mutex fWriteMx;
 	uint32_t	fstate;
 	std::string fFilePath;
 	std::string fCurrentDir;

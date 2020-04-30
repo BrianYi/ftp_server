@@ -28,4 +28,4 @@ const uint32_t SEND_BUF_SIZE = 10 * 1024u;
 #define DEBUG_FTPSession_RW_TIME	1
 #endif
 
-#define DEBUG_TaskThread			0
+#define DEBUG_TaskThread			1

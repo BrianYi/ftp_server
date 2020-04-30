@@ -83,19 +83,23 @@ public:
 		fType = type; 
 		fMsg = msg; 
 		fCreateTimeMs = get_timestamp_ms();
+		fMaxWasteTimeMs = 0;
 	}
 	~DebugTime() 
 	{ 
 		fDestroyTimeMs = get_timestamp_ms();
 		uint64_t fDiffTimeMs = fDestroyTimeMs - fCreateTimeMs;
+		fMaxWasteTimeMs = std::max( fMaxWasteTimeMs, fDiffTimeMs );
 		switch ( fType )
 		{
 			case DebugTime::Print:
 			{
 				if (fMsg.empty() )
-					printf( "time waste: %llu\n", fDiffTimeMs );
+					printf( "time waste: %llu, max time waste: %llu\n", 
+						fDiffTimeMs, fMaxWasteTimeMs );
 				else
-					printf( "time waste: %llu, MSG:%s\n", fDiffTimeMs, fMsg.c_str() );
+					printf( "time waste: %llu, max time waste: %llu, MSG:%s\n", 
+						fDiffTimeMs, fMaxWasteTimeMs, fMsg.c_str() );
 				break;
 			}
 			case DebugTime::Assert:
@@ -108,6 +112,7 @@ public:
 private:
 	uint64_t fCreateTimeMs;
 	uint64_t fDestroyTimeMs;
+	uint64_t fMaxWasteTimeMs;
 	std::string fMsg;
 	Type fType;
 };

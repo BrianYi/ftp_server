@@ -55,11 +55,8 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 	if ( flags & EPOLLIN )
 	{
 		// lock reading
-		std::unique_lock<std::mutex> lockRead( this->fReadMx, std::try_to_lock );
-
-		if ( !lockRead.owns_lock() )
-			return 1;
-		else
+		std::unique_lock<std::timed_mutex> lockRead( this->fReadMx, std::defer_lock );
+		if ( lockRead.try_lock_for() )
 		{
 #if DEBUG_DataTransferSession_RW_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
@@ -138,10 +135,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					const int blockSize = MAX_BODY_SIZE;
 					char readBuf[blockSize];
 					int readSize = 0;
-					{
-						DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
-						readSize = read( fFileDesc, readBuf, blockSize );
-					}
+					readSize = read( fFileDesc, readBuf, blockSize );
 					if ( readSize <= 0 )
 					{
 						// finished
@@ -172,10 +166,8 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 	if ( flags & EPOLLOUT )
 	{
 		// lock writing
-		std::unique_lock<std::mutex> lockWrite( this->fWriteMx, std::try_to_lock );
-		if ( !lockWrite.owns_lock() )
-			return 1;
-		else
+		std::unique_lock<std::timed_mutex> lockWrite( this->fWriteMx, std::defer_lock );
+		if ( lockWrite.try_lock( /*std::chrono::milliseconds( 10 )*/ ) )
 		{
 #if DEBUG_DataTransferSession_RW_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
@@ -194,7 +186,6 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			{
 				if ( this->empty() )
 				{
-					this->request_event( EPOLLIN );
 					break;
 				}
 

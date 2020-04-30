@@ -26,8 +26,8 @@ EventHandler::~EventHandler( )
 
 void EventHandler::request_event( uint32_t events )
 {
- 	if ( fEvents & events )
- 		return;
+//  	if ( fEvents & events )
+//  		return;
 	// all task is edge-trigger
 	// EPOLLIN is alive all the lifecycle
 	fEvents = events | EPOLLIN | EPOLLET;

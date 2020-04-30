@@ -2,4 +2,4 @@
 
 **Platform**: Linux
 
-A ftp server.
+An ftp server.

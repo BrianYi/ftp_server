@@ -13,7 +13,7 @@ void* TaskThread::entry( )
 	{
 		if ( fTaskPriQueue.empty( ) )
 		{
-			::usleep( 100 );
+			::usleep( 10 );
 			continue;
 		}
 
@@ -33,7 +33,7 @@ void* TaskThread::entry( )
 			if ( h->refcount( ) == 1 )
 			{
 #if DEBUG_TaskThread
-				printf( "Kill Event, event ref=%d, delete handler=%x, fd=%d\n",
+				RTMP_Log( RTMP_LOGDEBUG,  "Kill Event, event ref=%d, delete handler=%x, fd=%d\n",
 								   h->refcount( ), h, h->fSocket );
 #endif
 				delete h;
@@ -45,8 +45,10 @@ void* TaskThread::entry( )
 		}
 
 #if DEBUG_TaskThread
-		printf( "threadId=%d, taskQueue.size=%d, throw=%lld\n",
-			this, fTaskPriQueue.size(), fThrowOutPacketNum.load() );
+// 		RTMP_LogAndPrintf( RTMP_LOGDEBUG,  "threadId=%d, taskQueue.size=%d, throw=%lld\n",
+// 			this, fTaskPriQueue.size(), fThrowOutPacketNum.load() );
+		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "threadId=%d, taskQueue.size=%d",
+			this, fTaskPriQueue.size() );
 #endif
 
 		/*
@@ -57,16 +59,18 @@ void* TaskThread::entry( )
 		if ( waitForTime > 0 )
 		{
 			fTaskPriQueue.push( task );
-			::usleep( 100 );
+			::usleep( 10 );
 			continue;
 		}
 		else
 		{
-			if ( -waitForTime > TASK_TIMEOUT )
+			//if ( -waitForTime > TASK_TIMEOUT )
 			{
-				fThrowOutPacketNum++;
-				delete task;
-				continue;
+#if DEBUG_TaskThread
+			//	fThrowOutPacketNum++;
+#endif
+			//	delete task;
+			//	continue;
 			}
 		}
 
@@ -75,15 +79,15 @@ void* TaskThread::entry( )
 		 * < 0 : finished, delete this task
 		 * >=0 : wait a few time, then re-run this task
 		 */
-		waitForTime = task->run();
-		if ( waitForTime < 0 )
+ 		waitForTime = task->run();
+// 		if ( waitForTime < 0 )
 			delete task;
-		else
-		{
-			uint64_t nextTime = get_timestamp_ms() + waitForTime;
-			task->set_timestamp( nextTime );
-			fTaskPriQueue.push( task );
-		}
+// 		else
+// 		{
+// 			uint64_t nextTime = get_timestamp_ms() + waitForTime;
+// 			task->set_timestamp( nextTime );
+// 			fTaskPriQueue.push( task );
+// 		}
 	}
 	return nullptr;
 }
