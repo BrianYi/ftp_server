@@ -38,5 +38,5 @@ int32_t Task::run( )
 {
 	if (!(fFlags & killEvent))
 		return fHandler->handle_event(fFlags );
-	return -1;
+	return 1;
 }

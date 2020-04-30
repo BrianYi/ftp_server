@@ -48,8 +48,8 @@ private:
 	PriorityQueue<Packet*> fSendPriQueue;
 	Stack<DataTransferSession*> fDataTransSessionStack;
 	int64_t fAcceptTime;
-	std::timed_mutex fReadMx;
-	std::timed_mutex fWriteMx;
+	std::mutex fReadMx;
+	std::mutex fWriteMx;
 	uint32_t	fstate;
 	std::string fCurDir;
 	std::string fUserName;

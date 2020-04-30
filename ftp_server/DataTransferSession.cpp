@@ -55,8 +55,10 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 	if ( flags & EPOLLIN )
 	{
 		// lock reading
-		std::unique_lock<std::timed_mutex> lockRead( this->fReadMx, std::defer_lock );
-		if ( lockRead.try_lock_for() )
+		std::unique_lock<std::mutex> lockRead( this->fReadMx, std::try_to_lock );
+		if ( !lockRead.owns_lock() )
+			return 1;
+		else
 		{
 #if DEBUG_DataTransferSession_RW_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
@@ -69,105 +71,113 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 
 			std::string relFilePath = "/" + fFilePath;
 			std::string absFilePath = fCurrentDir + relFilePath;
-			for ( ;; )
+
+			if ( fType == STOR )
 			{
-				if ( fType == STOR )
+				const int blockSize = 10 * MAX_BODY_SIZE;
+				char recvBuf[blockSize];
+				int recvSize = this->recv( recvBuf, blockSize, Socket::NonBlocking );
+				// peer connection lost
+				if ( recvSize <= 0 )
 				{
-					const int blockSize = 10 * MAX_BODY_SIZE;
-					char recvBuf[blockSize];
-					int recvSize = this->recv( recvBuf, blockSize, Socket::NonBlocking );
-					// peer connection lost
-					if ( recvSize <= 0 )
+					if ( recvSize == 0 ) // lost connection or finished
 					{
-						if ( recvSize == 0 ) // lost connection or finished
-						{
-							fRcvFinished = true;
-							this->push( PacketUtils::new_packet( fType, recvBuf, recvSize, 0 ) );
-							Task *task = new Task( this, EPOLLOUT );
-							Dispatcher::push_to_thread( task );
-							break;
-						}
-						else // EAGAIN
-						{
-							if ( errno == EAGAIN )
-							{
-								this->request_event( EPOLLIN );
-								break;
-							}
-							else
-								assert( false );
-						}
+						fRcvFinished = true;
+						this->push( PacketUtils::new_packet( fType, recvBuf, recvSize, 0 ) );
+						Task *task = new Task( this, EPOLLOUT );
+						Dispatcher::push_to_thread( task );
+						this->request_event( EPOLLIN );
+						return -1;//break
 					}
-					else
+					else // EAGAIN
 					{
-						int32_t numPack = (recvSize + MAX_BODY_SIZE - 1) / MAX_BODY_SIZE;
-						int32_t bodySize = 0;
-						for ( int i = 0; i < numPack; ++i )
+						if ( errno == EAGAIN )
 						{
-							bodySize = (i == numPack - 1) ?
-								recvSize - i * MAX_BODY_SIZE : MAX_BODY_SIZE;
-							this->push( PacketUtils::new_packet( fType, recvBuf + i * MAX_BODY_SIZE, bodySize, 1 ) );
-							Task *task = new Task( this, EPOLLOUT );
-							Dispatcher::push_to_thread( task );
+							this->request_event( EPOLLIN );
+							return -1;// break;
 						}
+						else
+							assert( false );
 					}
 				}
-				else if ( fType == RETR)
+				else
 				{
-					// judge if file already opened
-					// in multi-thread environment, one thread opened file, others just read
+					int32_t numPack = (recvSize + MAX_BODY_SIZE - 1) / MAX_BODY_SIZE;
+					int32_t bodySize = 0;
+					for ( int i = 0; i < numPack; ++i )
+					{
+						bodySize = (i == numPack - 1) ?
+							recvSize - i * MAX_BODY_SIZE : MAX_BODY_SIZE;
+						this->push( PacketUtils::new_packet( fType, recvBuf + i * MAX_BODY_SIZE, bodySize, 1 ) );
+						Task *task = new Task( this, EPOLLOUT );
+						Dispatcher::push_to_thread( task );
+					}
+					this->request_event( EPOLLIN );
+					return -1;
+				}
+			}
+			else if ( fType == RETR )
+			{
+				// judge if file already opened
+				// in multi-thread environment, one thread opened file, others just read
+				if ( fFileDesc == -1 )
+				{
+					fFileDesc = ::open( absFilePath.c_str(), O_RDONLY );
 					if ( fFileDesc == -1 )
 					{
-						fFileDesc = ::open( absFilePath.c_str(), O_RDONLY );
-						if ( fFileDesc == -1 )
-						{
-							std::string retStr =
-								"450-Requested file action not taken.\n"
-								"450 File doesn't exist.\n";
-							fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
-							fFTPSession->request_event( EPOLLOUT );
-							this->kill_event();
-							return -1;
-						}
+						std::string retStr =
+							"450-Requested file action not taken.\n"
+							"450 File doesn't exist.\n";
+						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
+						fFTPSession->request_event( EPOLLOUT );
+						this->kill_event();
+						return -1;
 					}
-
-
-					const int blockSize = MAX_BODY_SIZE;
-					char readBuf[blockSize];
-					int readSize = 0;
-					readSize = read( fFileDesc, readBuf, blockSize );
-					if ( readSize <= 0 )
-					{
-						// finished
-						::close( fFileDesc );
-
-						this->push( PacketUtils::new_packet( fType, relFilePath.c_str(), relFilePath.size() + 1, 0 ) );
-						this->request_event( EPOLLOUT );
-					}
-					else
-					{
-						int32_t numPack = (readSize + MAX_BODY_SIZE - 1) / MAX_BODY_SIZE;
-						int32_t bodySize = 0;
-						for ( int i = 0; i < numPack; ++i )
-						{
-							bodySize = (i == numPack - 1) ?
-								readSize - i * MAX_BODY_SIZE : MAX_BODY_SIZE;
-							this->push( PacketUtils::new_packet( fType, readBuf + i * MAX_BODY_SIZE, bodySize, 1 ) );
-						}
-						this->request_event( EPOLLOUT );
-					}
-					break;
 				}
-				else assert( false );
+
+
+				const int blockSize = MAX_BODY_SIZE;
+				char readBuf[blockSize];
+				int readSize = 0;
+				readSize = read( fFileDesc, readBuf, blockSize );
+				if ( readSize <= 0 )
+				{
+					// finished
+					::close( fFileDesc );
+
+					this->push( PacketUtils::new_packet( fType, relFilePath.c_str(), relFilePath.size() + 1, 0 ) );
+					this->request_event( EPOLLOUT );
+					return -1;
+				}
+				else
+				{
+					int32_t numPack = (readSize + MAX_BODY_SIZE - 1) / MAX_BODY_SIZE;
+					int32_t bodySize = 0;
+					for ( int i = 0; i < numPack; ++i )
+					{
+						bodySize = (i == numPack - 1) ?
+							readSize - i * MAX_BODY_SIZE : MAX_BODY_SIZE;
+						this->push( PacketUtils::new_packet( fType, readBuf + i * MAX_BODY_SIZE, bodySize, 1 ) );
+					}
+					this->request_event( EPOLLOUT );
+					Task *task = new Task( this, EPOLLOUT );
+					Dispatcher::push_to_thread( task );
+				}
+				
+				//break;
 			}
+			else assert( false );
+
 		}
 	}
 
 	if ( flags & EPOLLOUT )
 	{
 		// lock writing
-		std::unique_lock<std::timed_mutex> lockWrite( this->fWriteMx, std::defer_lock );
-		if ( lockWrite.try_lock( /*std::chrono::milliseconds( 10 )*/ ) )
+		std::unique_lock<std::mutex> lockWrite( this->fWriteMx, std::try_to_lock );
+		if ( !lockWrite.owns_lock() )
+			return 1;
+		else
 		{
 #if DEBUG_DataTransferSession_RW_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
@@ -186,6 +196,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			{
 				if ( this->empty() )
 				{
+					//this->request_event( EPOLLIN );
 					break;
 				}
 

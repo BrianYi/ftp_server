@@ -39,9 +39,11 @@ int32_t FTPSession::handle_event( uint32_t flags )
 	if ( flags & EPOLLIN )
 	{
 		// lock reading
-		std::unique_lock<std::timed_mutex> lockRead( this->fReadMx, std::defer_lock );
+		std::unique_lock<std::mutex> lockRead( this->fReadMx, std::try_to_lock );
 		
-		if ( lockRead.try_lock( /*std::chrono::milliseconds( 10 )*/ ) )
+		if ( !lockRead.owns_lock() )
+			return 1;
+		else
 		{
 #if DEBUG_FTPSession_RW_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
@@ -262,9 +264,11 @@ int32_t FTPSession::handle_event( uint32_t flags )
 	if ( flags & EPOLLOUT )
 	{
 		// lock writing
-		std::unique_lock<std::timed_mutex> lockWrite( this->fWriteMx, std::defer_lock );
+		std::unique_lock<std::mutex> lockWrite( this->fWriteMx, std::try_to_lock );
 
-		if ( lockWrite.try_lock( /*std::chrono::milliseconds( 10 )*/ ) )
+		if ( !lockWrite.owns_lock() )
+			return 1;
+		else
 		{
 #if DEBUG_FTPSession_RW_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
