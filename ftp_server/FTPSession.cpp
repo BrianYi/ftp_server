@@ -171,8 +171,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								assert( fDataTransSessionStack.size() == 1 );
 
 								// success
-								DataTransferSession *dataTransSession = fDataTransSessionStack.top();
-								fDataTransSessionStack.pop();
+								DataTransferSession *dataTransSession = fDataTransSessionStack.pop();
 
 								std::string filePath = strArry[1];
 								(void)dataTransSession->exec_command( commandType, filePath );
@@ -187,8 +186,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								assert( fDataTransSessionStack.size() == 1 );
 
 								// success
-								DataTransferSession *dataTransSession = fDataTransSessionStack.top();
-								fDataTransSessionStack.pop();
+								DataTransferSession *dataTransSession = fDataTransSessionStack.pop();
 
 								std::string filePath = strArry[1];
 								(void)dataTransSession->exec_command( commandType, filePath );
@@ -225,8 +223,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								assert( fDataTransSessionStack.size() == 1 );
 
 								// success
-								DataTransferSession *dataTransSession = fDataTransSessionStack.top();
-								fDataTransSessionStack.pop();
+								DataTransferSession *dataTransSession = fDataTransSessionStack.pop();
 
 								std::string dir = strArry.size() > 1 ? strArry[1] : "";
 								(void)dataTransSession->exec_command( commandType, dir );
@@ -281,8 +278,8 @@ int32_t FTPSession::handle_event( uint32_t flags )
 				if ( this->empty() )
 					break;
 
-				Packet *ptrPacket = this->front();
-				this->pop();
+				Packet *ptrPacket = this->pop();
+				//this->pop();
 				int32_t sendSize = this->send( (char *)ptrPacket->body(), ptrPacket->body_size(), Socket::NonBlocking );
 
 				if ( sendSize < 0 )

@@ -21,13 +21,13 @@ public:
 	{
 		fSendPriQueue.push( ptrPacket );
 	}
-	Packet* front()
+// 	Packet* front()
+// 	{
+// 		return fSendPriQueue.front();
+// 	}
+	Packet* pop()
 	{
-		return fSendPriQueue.front();
-	}
-	void pop()
-	{
-		fSendPriQueue.pop();
+		return fSendPriQueue.pop();
 	}
 	bool empty()
 	{

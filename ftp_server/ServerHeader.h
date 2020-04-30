@@ -18,6 +18,8 @@ const uint32_t SEND_BUF_SIZE = 10 * 1024u;
 /* every read or write task time spending should be limited to this ms */
 #define DEBUG_RW_TIME_MAX	10
 
+#define DEBUG_Queue 0
+
 #define DEBUG_DataTransferSession	0
 #if DEBUG_DataTransferSession
 #define DEBUG_DataTransferSession_RW_TIME	1

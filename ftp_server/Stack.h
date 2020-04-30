@@ -11,14 +11,12 @@ public:
 		std::unique_lock<std::mutex> lock( this->fStackMx );
 		fElemStack.push( elem );
 	}
-	T top()
-	{
-		return fElemStack.top();
-	}
-	void pop()
+	T pop()
 	{
 		std::unique_lock<std::mutex> lock( this->fStackMx );
+		T elem = fElemStack.top();
 		fElemStack.pop();
+		return elem;
 	}
 	bool empty()
 	{

@@ -200,8 +200,8 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					break;
 				}
 
-				Packet *ptrPacket = this->front();
-				this->pop();
+				Packet *ptrPacket = this->pop();
+				//this->pop();
 
 				if ( fType == STOR )
 				{

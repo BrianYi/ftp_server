@@ -13,15 +13,15 @@ void* TaskThread::entry( )
 	{
 		if ( fTaskPriQueue.empty( ) )
 		{
-			::msleep( 10 );
+			::msleep( 1 );
 			continue;
 		}
 
 		/*
 		 * get out one task
 		 */
-		Task *task = fTaskPriQueue.front( );
-		fTaskPriQueue.pop( );
+		Task *task = fTaskPriQueue.pop( );
+		//fTaskPriQueue.pop( );
 
 		/*
 		 * judge if event should be killed?
@@ -57,7 +57,7 @@ void* TaskThread::entry( )
 		if ( waitForTime > 0 )
 		{
 			fTaskPriQueue.push( task );
-			::msleep( 10 );
+			::msleep( 1 );
 			continue;
 		}
 		else
@@ -79,7 +79,7 @@ void* TaskThread::entry( )
 		 */
  		waitForTime = task->run();
 		if ( waitForTime < 0 )
-			;//delete task;
+			delete task;
 		else
 		{
 			uint64_t nextTime = get_timestamp_ms() + waitForTime;

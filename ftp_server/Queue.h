@@ -1,5 +1,6 @@
 #pragma once
 #include "ServerHeader.h"
+#include <set>
 
 template <class T>
 class cmp
@@ -23,6 +24,10 @@ public:
 	void push( T elem )
 	{
 		std::unique_lock<std::mutex> lock( this->fQueueMx );
+#if DEBUG_Queue
+		assert( fDebugSet.count( elem ) == 0 );
+		fDebugSet.insert( elem ); 
+#endif
 		fElemQueue.push( elem );
 	}
 	T front()
@@ -49,6 +54,9 @@ public:
 private:
 	std::queue<T> fElemQueue;
 	std::mutex fQueueMx;
+#if DEBUG_Queue
+	std::set<T> fDebugSet;
+#endif
 };
 
 /*
@@ -61,20 +69,22 @@ public:
 	void push( T elem )
 	{
 		std::unique_lock<std::mutex> lock( this->fQueueMx );
+#if DEBUG_Queue
+		assert( fDebugSet.count( elem ) == 0 );
+		fDebugSet.insert( elem );
+#endif
 		fElemQueue.push( elem );
 	}
-	T front()
-	{
-		return fElemQueue.top();
-	}
-	T back()
-	{
-		return fElemQueue.back();
-	}
-	void pop()
+// 	T front()
+// 	{
+// 		return fElemQueue.top();
+// 	}
+	T pop()
 	{
 		std::unique_lock<std::mutex> lock( this->fQueueMx );
+		T elem = fElemQueue.top();
 		fElemQueue.pop();
+		return elem;
 	}
 	bool empty()
 	{
@@ -87,5 +97,8 @@ public:
 private:
 	std::priority_queue<T, std::vector<T>, cmp<T>> fElemQueue;
 	std::mutex fQueueMx;
+#if DEBUG_Queue
+	std::set<T> fDebugSet;
+#endif
 };
 
