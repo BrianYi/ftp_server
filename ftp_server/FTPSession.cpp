@@ -13,8 +13,8 @@ FTPSession::FTPSession():
 	fstate = UnAuthorized;
 }
 
-FTPSession::FTPSession( int32_t fd, Address& address ):
-	TcpSocket( fd, true, address )
+FTPSession::FTPSession( int32_t fd ):
+	TcpSocket( fd, true )
 {
 #if DEBUG_DataTransferSession
 	printf( "new FTPSession %x\n", this );
@@ -45,7 +45,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 			return 1;
 		else
 		{
-#if DEBUG_FTPSession_RW_TIME
+#if DEBUG_FTPSession_RD_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
 #endif
 			// this shot is triggered
@@ -76,13 +76,13 @@ int32_t FTPSession::handle_event( uint32_t flags )
 				// command interpreter
 				std::vector<std::string> strArry = SplitString( buf, " " );
 				int commandType = CommandType( strArry[0] );
-				std::string retStr = "502 Command not implemented.\n";
+				std::string retStr = "502 Command not implemented.\r\n";
 				switch ( commandType )
 				{
 					case USER:
 					{
 						fUserName = strArry[1];
-						retStr = "331 Password required for " + fUserName + "\n";
+						retStr = "331 Password required for " + fUserName + "\r\n";
 						break;
 					}
 					case PASS:
@@ -90,12 +90,12 @@ int32_t FTPSession::handle_event( uint32_t flags )
 						fPassword = strArry[1];
 						if ( sys_auth_user( fUserName.c_str(), fPassword.c_str() ) != 0 )
 						{
-							retStr = "530 Login or password incorrect!\n";
+							retStr = "530 Login or password incorrect!\r\n";
 							fstate = UnAuthorized;
 						}
 						else
 						{
-							retStr = "230 Logged on\n";
+							retStr = "230 Logged on\r\n";
 							fstate = Authorized;
 						}
 						break;
@@ -103,7 +103,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 					case QUIT:
 					{
 						// send goodbye
-						retStr = "221 Goodbye!\n";
+						retStr = "221 Goodbye!\r\n";
 						this->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 						this->request_event( EPOLLOUT );
 
@@ -118,7 +118,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 					{
 						if ( fstate == UnAuthorized )
 						{
-							retStr = "530 Please log in with USER and PASS first.\n";
+							retStr = "530 Please log in with USER and PASS first.\r\n";
 							break;
 						}
 						switch ( commandType )
@@ -138,27 +138,50 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								std::vector<std::string> vecStr = SplitString( strArry[1], "," );
 								std::string ipAddr = vecStr[0] + "." + vecStr[1] + "." + vecStr[2] + "." + vecStr[3];
 								uint16_t dataPort = stoi( vecStr[4] ) * 256 + stoi( vecStr[5] );
-								DataTransferSession *dataTransSesson = new DataTransferSession( this, fCurDir );
-								dataTransSesson->set_accept_time( get_timestamp_ms() );
-								if ( dataTransSesson->connect( ipAddr, dataPort, Socket::Blocking ) != 0 )
+								DataTransferSession *dataTransSession = new DataTransferSession( this, fCurDir, DataTransferSession::Active );
+								dataTransSession->set_accept_time( get_timestamp_ms() );
+								if ( dataTransSession->connect( ipAddr, dataPort, Socket::Blocking ) != 0 )
 								{
 									// failed
 									retStr = "500 Cannot connect to " + ipAddr + ":" +
-										std::to_string( dataPort ) + "\n";
-									delete dataTransSesson;
+										std::to_string( dataPort ) + "\r\n";
+									delete dataTransSession;
 									break;
 								}
 
 								// request read event
-								//dataTransSesson->request_event( EPOLLIN );
+								//dataTransSession->request_event( EPOLLIN );
 
 								// success
-								fDataTransSessionStack.push( dataTransSesson );
-								retStr = "200 Port command successful\n";
+								fDataTransSessionStack.push( dataTransSession );
+								retStr = "200 Port command successful\r\n";
 								break;
 							}
 							case PASV:
+							{
+								DataTransferSession *dataTransSession = new DataTransferSession( this, fCurDir, DataTransferSession::Passive  );
+								dataTransSession->set_accept_time( get_timestamp_ms() );
+								dataTransSession->listen( 0, 64 );
+								uint16_t port = dataTransSession->local_port();
+								std::vector<std::string> vecStr = SplitString( SERVER_IP, "." );
+								retStr = "227 Entering Passive Mode (" +
+									vecStr[0] + "," + vecStr[1] + "," + vecStr[2] + "," + vecStr[3] + "," +
+									std::to_string( port >> 8 ) + "," + std::to_string( port & 0xff ) +
+									").\r\n";
+
+								// request read event
+								dataTransSession->request_event( EPOLLIN );
+								(void)dataTransSession->exec_command( commandType, "" );
+
+								// success
+								fDataTransSessionStack.push( dataTransSession );
+								//retStr = "200 Port command successful\r\n";
+#if 0
+								RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(response)PASV FTPSession=%x, dataTransSession=%x %s",
+									this, dataTransSession, retStr.c_str() );
+#endif
 								break;
+							}
 							case TYPE:
 								break;
 							case STRU:
@@ -177,7 +200,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								(void)dataTransSession->exec_command( commandType, filePath );
 
 								// prepare for sending data
-								retStr = "150 Opening data channel for file download from server of '/" + filePath + "'\n";
+								retStr = "150 Opening data channel for file download from server of '/" + filePath + "'\r\n";
 								break;
 							}
 							case STOR:
@@ -192,7 +215,11 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								(void)dataTransSession->exec_command( commandType, filePath );
 
 								// prepare for receive data
-								retStr = "150 Opening data channel for file upload to server of '/" + filePath + "'\n";
+								retStr = "150 Opening data channel for file upload to server of '/" + filePath + "'\r\n";
+#if 0
+								RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(response)STOR FTPSession=%x, dataTransSession=%x %s",
+									this, dataTransSession, retStr.c_str() );
+#endif
 								break;
 							}
 							case STOU:
@@ -229,7 +256,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								(void)dataTransSession->exec_command( commandType, dir );
 
 								// prepare for sending data
-								retStr = "150 Opening data channel for file upload to server of '/" + dir + "'\n";
+								retStr = "150 Opening data channel for file upload to server of '/" + dir + "'\r\n";
 								break;
 							}
 							case NLIST:
@@ -238,7 +265,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								break;
 							case SYST:
 							{
-								retStr = "215 UNIX\n";
+								retStr = "215 UNIX\r\n";
 								break;
 							}
 							case STAT:
@@ -267,7 +294,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 			return 1;
 		else
 		{
-#if DEBUG_FTPSession_RW_TIME
+#if DEBUG_FTPSession_WR_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
 #endif
 			// this shot is triggered

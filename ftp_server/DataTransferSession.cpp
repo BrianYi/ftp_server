@@ -2,39 +2,43 @@
 #include "Utilities.h"
 #include "Dispatcher.h"
 
-DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir ) :
+DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir, Mode mode ) :
 	TcpSocket()
 {
-#if DEBUG_DataTransferSession
+#if DEBUG_DataTransferSession_OTHER
 	printf( "new DataTransferSession %x\n", this );
 #endif
+	this->set_socket_rcvbuf_size( 10 * MAX_BODY_SIZE );
+	this->set_socket_sndbuf_size( 10 * MAX_BODY_SIZE );
 	fAcceptTime = 0;
 	fFTPSession = ftpSession;
 	fCurrentDir = currentDir;
 	fRcvFinished = false;
 	fFileDesc = -1;
 	fType = UNKNOWN;
-	//fstate = UnAuthorized;
+	fMode = mode;
+	fConnected = false;
 }
 
-DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir, int32_t fd, Address& address ) :
-	TcpSocket( fd, true, address )
-{
-#if DEBUG_DataTransferSession
-	printf( "new DataTransferSession %x\n", this );
-#endif
-	fAcceptTime = 0;
-	fFTPSession = ftpSession;
-	fCurrentDir = currentDir;
-	fRcvFinished = false;
-	fFileDesc = -1;
-	fType = UNKNOWN;
-	//fstate = UnAuthorized;
-}
+// DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir, int32_t fd ) :
+// 	TcpSocket( fd, true )
+// {
+// #if DEBUG_DataTransferSession_OTHER
+// 	printf( "new DataTransferSession %x\n", this );
+// #endif
+// 	this->set_socket_rcvbuf_size( 10 * MAX_BODY_SIZE );
+// 	this->set_socket_sndbuf_size( 10 * MAX_BODY_SIZE );
+// 	fAcceptTime = 0;
+// 	fFTPSession = ftpSession;
+// 	fCurrentDir = currentDir;
+// 	fRcvFinished = false;
+// 	fFileDesc = -1;
+// 	fType = UNKNOWN;
+// }
 
 DataTransferSession::~DataTransferSession()
 {
-#if DEBUG_DataTransferSession
+#if DEBUG_DataTransferSession_OTHER
 	printf( "del DataTransferSession %x\n", this );
 #endif
 }
@@ -60,7 +64,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			return 1;
 		else
 		{
-#if DEBUG_DataTransferSession_RW_TIME
+#if DEBUG_DataTransferSession_RD_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
 #endif
 			// this shot is triggered
@@ -72,11 +76,54 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			std::string relFilePath = "/" + fFilePath;
 			std::string absFilePath = fCurrentDir + relFilePath;
 
-			if ( fType == STOR )
+			if ( fMode == Passive )
 			{
-				const int blockSize = 10 * MAX_BODY_SIZE;
+				if ( !fConnected )
+				{
+					socklen_t len = sizeof( struct sockaddr );
+					Address address;
+#if 0
+					DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
+#endif
+					int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
+#if 0
+					RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)PASV DataTransferSession=%x fListenerSocket=%d,fRDSocket=%d",
+						this, this->fSocket, socketID );
+#endif
+					if ( socketID == -1 )
+						return -1;
+					this->fListenerSocket = this->fSocket;
+					//::close( this->fSocket );
+					this->fSocket = socketID;
+					fConnected = true;
+				}
+			}
+
+			if ( fType == PASV )
+			{
+// 				socklen_t len = sizeof( struct sockaddr );
+// 				Address address;
+// 				int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
+// #if 0
+// 				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)PASV DataTransferSession=%x fListenerSocket=%d,fRDSocket=%d",
+// 					this, this->fSocket, socketID );
+// #endif
+// 				if ( socketID == -1 ) return -1;
+// 				::close( this->fSocket );
+// 				this->fSocket = socketID;
+// 				fConnected = true;
+				return -1;
+			}
+			else if ( fType == STOR )
+			{
+				const int blockSize = MAX_BODY_SIZE;
 				char recvBuf[blockSize];
 				int recvSize = this->recv( recvBuf, blockSize, Socket::NonBlocking );
+#if 0
+				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)STOR DataTransferSession=%x fRDSocket=%d",
+					this, this->fSocket );
+#endif
+				//printf( "%d\n", recvSize );
 				// peer connection lost
 				if ( recvSize <= 0 )
 				{
@@ -97,7 +144,10 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 							return -1;// break;
 						}
 						else
+						{
+							RTMP_LogAndPrintf( RTMP_LOGERROR, "errno=%d", errno );
 							assert( false );
+						}
 					}
 				}
 				else
@@ -112,7 +162,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 						Task *task = new Task( this, EPOLLOUT );
 						Dispatcher::push_to_thread( task );
 					}
-					this->request_event( EPOLLIN );
+					//this->request_event( EPOLLIN );
 					return -1;
 				}
 			}
@@ -126,8 +176,8 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					if ( fFileDesc == -1 )
 					{
 						std::string retStr =
-							"450-Requested file action not taken.\n"
-							"450 File doesn't exist.\n";
+							"450-Requested file action not taken.\r\n"
+							"450 File doesn't exist.\r\n";
 						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 						fFTPSession->request_event( EPOLLOUT );
 						this->kill_event();
@@ -179,7 +229,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			return 1;
 		else
 		{
-#if DEBUG_DataTransferSession_RW_TIME
+#if DEBUG_DataTransferSession_WR_TIME
 			DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
 #endif
 			// this shot is triggered
@@ -196,7 +246,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			{
 				if ( this->empty() )
 				{
-					//this->request_event( EPOLLIN );
+					this->request_event( EPOLLIN );
 					break;
 				}
 
@@ -209,7 +259,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					if ( !ptrPacket->more() )
 					{
 						// finished write to file
-						std::string retStr = "226 Successfully upload '" + relFilePath + "'\n";
+						std::string retStr = "226 Successfully upload '" + relFilePath + "'\r\n";
 						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 						fFTPSession->request_event( EPOLLOUT );
 
@@ -231,7 +281,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 							fFileDesc = ::open( absFilePath.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0777 );
 						if ( fFileDesc == -1 )
 						{
-							std::string retStr = "450 Requested file action not taken.\n";
+							std::string retStr = "450 Requested file action not taken.\r\n";
 							fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 							fFTPSession->request_event( EPOLLOUT );
 							this->kill_event();
@@ -240,8 +290,9 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					}
 
 					// write data
-					ssize_t writeSize = write( fFileDesc, ptrPacket->body(), ptrPacket->body_size() );
-					assert( writeSize == ptrPacket->body_size() );
+					write( fFileDesc, ptrPacket->body(), ptrPacket->body_size() );
+					//ssize_t writeSize = write( fFileDesc, ptrPacket->body(), ptrPacket->body_size() );
+					//assert( writeSize == ptrPacket->body_size() );
 				}
 				else if ( fType == RETR )
 				{
@@ -249,7 +300,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					{
 						// finished sending file
 						std::string retStr = "226 Successfully download '" +
-							std::string( ptrPacket->body() ) + "'\n";
+							std::string( ptrPacket->body() ) + "'\r\n";
 						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 						fFTPSession->request_event( EPOLLOUT );
 						this->kill_event();
@@ -290,7 +341,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					{
 						// finished sending file
 						std::string retStr = "226 Successfully download '" +
-							std::string( ptrPacket->body() ) + "'\n";
+							std::string( ptrPacket->body() ) + "'\r\n";
 						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 						fFTPSession->request_event( EPOLLOUT );
 						this->kill_event();
@@ -346,7 +397,9 @@ int DataTransferSession::exec_command( int32_t commandType, std::string params )
 		case PORT:
 			break;
 		case PASV:
+		{
 			break;
+		}
 		case TYPE:
 			break;
 		case STRU:

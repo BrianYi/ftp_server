@@ -15,10 +15,10 @@ TcpSocket::TcpSocket( ) :
 // 	*this = inTcpSocket;
 // }
 
-TcpSocket::TcpSocket( int32_t fd, bool binded, Address& address ) : 
+TcpSocket::TcpSocket( int32_t fd, bool binded ) : 
 	EventHandler( fd, binded, SOCK_STREAM, IPPROTO_TCP, Blocking )
 {
-	fAddress = address;
+	//fAddress = address;
 }
 
 // TCP::TCP( IOType inIOType ):Socket(SOCK_STREAM, inIOType)
@@ -62,7 +62,7 @@ int32_t TcpSocket::connect( const Address& inAddress, IOType inIOType )
 	int32_t ret = ::connect( this->fSocket, ( const sockaddr* ) &inAddress, sizeof( struct sockaddr ) );
 	if ( ret == 0 )
 	{
-		this->fAddress = inAddress;
+		//this->fAddress = inAddress;
 		this->fBinded = true;
 	}
 	return ret;
@@ -88,7 +88,7 @@ int32_t TcpSocket::connect( const std::string& inIP, const uint16_t& inPort, IOT
 		printf( "Connect error: %d\n", errno );
 		return ret;
 	}
-	this->fAddress = address;
+	//this->fAddress = address;
 	this->fBinded = true;
 	return ret;
 }
@@ -108,7 +108,7 @@ TcpSocket* TcpSocket::accept( IOType inIOType )
 	ptrTcpSocket->fSocket = socketID;
 	ptrTcpSocket->fBinded = true;
 	ptrTcpSocket->fOpened = true;
-	ptrTcpSocket->fAddress = address;
+	//ptrTcpSocket->fAddress = address;
 	return ptrTcpSocket;
 }
 
@@ -149,15 +149,32 @@ int32_t TcpSocket::recv( char* outContent, const uint32_t& inSize, IOType inIOTy
 
 Address TcpSocket::address( void )
 {
-	return fAddress;
+	Address address;
+	socklen_t len = sizeof( struct sockaddr );
+	getpeername( this->fSocket, (sockaddr*)&address, &len );
+	return address;
 }
 
 std::string TcpSocket::ip( void )
 {
-	return fAddress.ip( );
+	Address address;
+	socklen_t len = sizeof( struct sockaddr );
+	getpeername( this->fSocket, (sockaddr*)&address, &len );
+	return address.ip( );
 }
 
 uint16_t TcpSocket::port( void )
 {
-	return fAddress.port( );
+	Address address;
+	socklen_t len = sizeof( struct sockaddr );
+	getpeername( this->fSocket, (sockaddr*)&address, &len );
+	return address.port( );
+}
+
+uint16_t TcpSocket::local_port( void )
+{
+	Address address;
+	socklen_t len = sizeof( struct sockaddr );
+	getsockname( this->fSocket, (sockaddr*)&address, &len );
+	return address.port();
 }

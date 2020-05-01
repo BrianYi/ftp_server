@@ -9,7 +9,7 @@ class TcpSocket: public EventHandler
 { 
 public:
 	TcpSocket( );
-	TcpSocket( int32_t fd, bool binded, Address& address );
+	TcpSocket( int32_t fd, bool binded );
 	TcpSocket( const TcpSocket& inTcpSocket ) = delete;
 	~TcpSocket( );
 	void listen( const uint16_t& inPort, const uint32_t& inQueueLength );
@@ -21,7 +21,6 @@ public:
 	Address address( void );
 	std::string ip( void );
 	uint16_t port( void );
-protected:
-	Address fAddress;
+	uint16_t local_port( void );
 };
 

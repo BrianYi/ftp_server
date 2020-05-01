@@ -19,7 +19,7 @@ public:
 		// 
 	};
 	FTPSession();
-	FTPSession( int32_t fd, Address& address );
+	FTPSession( int32_t fd );
 	FTPSession( const FTPSession& ) = delete;
 	virtual ~FTPSession();
 	virtual int32_t handle_event( uint32_t flags );

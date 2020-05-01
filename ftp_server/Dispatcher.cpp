@@ -35,6 +35,7 @@ void Dispatcher::handle_events( )
 		{
 			std::unique_lock<std::mutex> locker( sHandlerTableMx );
 			auto it = sHandlerTable.find( ev[ i ].data.fd );
+			if ( it == sHandlerTable.end() ) continue;
 			EventHandler *handler = it->second;
 #if DEBUG_EPOLL
 			RTMP_LogAndPrintf( RTMP_LOGDEBUG, "fd %d triggered event=%s, handler events=%s",
@@ -51,6 +52,7 @@ void Dispatcher::handle_events( )
 
 void Dispatcher::register_handler( int fd, EventHandler* handler )
 {
+	assert( handler );
 	struct epoll_event ev;
 	ev.data.fd = handler->fSocket;
 	ev.events = handler->events( );
@@ -140,9 +142,4 @@ void Dispatcher::remove_handler( int fd )
 	Task *task = new Task( handler, Task::killEvent );
 	push_to_thread( task );
 	//close( fd ); // close should be in destructor
-}
-
-bool Dispatcher::exist_handler( int fd )
-{
-	return sHandlerTable.count( fd );
 }

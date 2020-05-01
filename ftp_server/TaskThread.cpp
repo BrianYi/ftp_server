@@ -32,7 +32,7 @@ void* TaskThread::entry( )
 			EventHandler *h = task->handler();
 			if ( h->refcount( ) == 1 )
 			{
-#if DEBUG_TaskThread
+#if DEBUG_TaskThread_OTHER
 				RTMP_LogAndPrintf( RTMP_LOGDEBUG,  "Kill Event, event ref=%d, delete handler=%x, fd=%d",
 								   h->refcount( ), h, h->fSocket );
 #endif
@@ -44,10 +44,6 @@ void* TaskThread::entry( )
 			continue;
 		}
 
-#if DEBUG_TaskThread
- 		RTMP_LogAndPrintf( RTMP_LOGDEBUG,  "threadId=%d, taskQueue.size=%d, throw=%lld",
- 			this, fTaskPriQueue.size(), fThrowOutPacketNum.load() );
-#endif
 
 		/*
 		 * has to wait a few time to run this task
@@ -64,7 +60,7 @@ void* TaskThread::entry( )
 		{
 			//if ( -waitForTime > TASK_TIMEOUT )
 			{
-#if DEBUG_TaskThread
+#if DEBUG_TaskThread_OTHER
 			//	fThrowOutPacketNum++;
 #endif
 			//	delete task;
@@ -77,7 +73,12 @@ void* TaskThread::entry( )
 		 * < 0 : finished, delete this task
 		 * >=0 : wait a few time, then re-run this task
 		 */
- 		waitForTime = task->run();
+
+#if DEBUG_TaskThread_OTHER
+		RTMP_LogAndPrintf( RTMP_LOGDEBUG, "threadId=%d, taskQueue.size=%d, throw=%lld, taskType=%d",
+			this, fTaskPriQueue.size(), fThrowOutPacketNum.load(), task->flags() );
+#endif
+		waitForTime = task->run();
 		if ( waitForTime < 0 )
 			delete task;
 		else

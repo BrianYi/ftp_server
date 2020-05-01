@@ -16,7 +16,7 @@
 #define msleep(ms)	usleep(1000 * ms)
 #endif
 
-#define MAX_BODY_SIZE 1400
+#define MAX_BODY_SIZE (10 * 1400)
 
 enum FTPCommandType
 {

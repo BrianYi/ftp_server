@@ -4,7 +4,7 @@
 #include <shadow.h>
 
 #define __LINEINFO__ \
-	std::string(__FILE__) + ":" + std::string(__func__) + "," + std::to_string(__LINE__)
+	std::string(__FILE__) + ":" + /*std::string(__func__) + "," +*/ std::to_string(__LINE__)
 
 inline std::string ls_command( std::string dir )
 {
@@ -78,7 +78,7 @@ public:
 		Print,
 		Assert
 	};
-	DebugTime( Type type, std::string msg )
+	DebugTime( Type type, const std::string& msg )
 	{
 		fType = type; 
 		fMsg = msg; 

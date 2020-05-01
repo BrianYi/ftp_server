@@ -12,6 +12,7 @@ public:
 		NonBlocking = 1
 	};
 	int fSocket;
+	int fListenerSocket;
 public:
 	Socket( int32_t inSocketType, int32_t inProtocol, IOType inIOType = Blocking );
 	Socket( int32_t fd, bool binded, int32_t inSocketType, int32_t inProtocol, IOType inIOType = Blocking );
