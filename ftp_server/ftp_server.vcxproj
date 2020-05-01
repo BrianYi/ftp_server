@@ -81,10 +81,11 @@
   </PropertyGroup>
   <ItemGroup>
     <ClCompile Include="Address.cpp" />
+    <ClCompile Include="DataTransferListener.cpp" />
     <ClCompile Include="DataTransferSession.cpp" />
     <ClCompile Include="EventHandler.cpp" />
     <ClCompile Include="Dispatcher.cpp" />
-    <ClCompile Include="FTPListenerSocket.cpp" />
+    <ClCompile Include="FTPListener.cpp" />
     <ClCompile Include="FTPSession.cpp" />
     <ClCompile Include="Log.cpp" />
     <ClCompile Include="main.cpp" />
@@ -97,10 +98,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Address.h" />
+    <ClInclude Include="DataTransferListener.h" />
     <ClInclude Include="DataTransferSession.h" />
     <ClInclude Include="EventHandler.h" />
     <ClInclude Include="Dispatcher.h" />
-    <ClInclude Include="FTPListenerSocket.h" />
+    <ClInclude Include="FTPListener.h" />
     <ClInclude Include="FTPSession.h" />
     <ClInclude Include="PlatformHeader.h" />
     <ClInclude Include="Log.h" />

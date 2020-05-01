@@ -3,12 +3,12 @@
 
 class FTPSession;
 
-class FTPListenerSocket :
+class FTPListener :
 	public TcpSocket
 {
 public:
-	FTPListenerSocket(std::string ftpHome);
-	virtual ~FTPListenerSocket();
+	FTPListener(std::string ftpHome);
+	virtual ~FTPListener();
 	virtual int32_t handle_event( uint32_t flags );
 	FTPSession* accept( IOType inIOType );
 private:

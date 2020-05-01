@@ -7,12 +7,8 @@ class DataTransferSession :
 	public TcpSocket
 {
 public:
-	enum Mode
-	{
-		Active,
-		Passive
-	};
-	DataTransferSession( FTPSession *ftpSession, std::string currentDir, Mode mode );
+	DataTransferSession( FTPSession *ftpSession, std::string currentDir );
+	DataTransferSession( int32_t fd, FTPSession *ftpSession, std::string currentDir );
 	//DataTransferSession( FTPSession *ftpSession, std::string currentDir, int32_t fd );
 	DataTransferSession( const DataTransferSession& ) = delete;
 	virtual ~DataTransferSession();
@@ -50,6 +46,6 @@ private:
 	int32_t fFileDesc;
 	bool fRcvFinished;
 	int32_t fType;
-	Mode	fMode;
-	bool fConnected;
+	//Mode	fMode;
+	//bool fConnected;
 };

@@ -2,7 +2,7 @@
 #include "Utilities.h"
 #include "Dispatcher.h"
 
-DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir, Mode mode ) :
+DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir ) :
 	TcpSocket()
 {
 #if DEBUG_DataTransferSession_OTHER
@@ -16,8 +16,22 @@ DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string cu
 	fRcvFinished = false;
 	fFileDesc = -1;
 	fType = UNKNOWN;
-	fMode = mode;
-	fConnected = false;
+}
+
+DataTransferSession::DataTransferSession( int32_t fd, FTPSession *ftpSession, std::string currentDir ):
+	TcpSocket(fd, true)
+{
+#if DEBUG_DataTransferSession_OTHER
+	printf( "new DataTransferSession %x\n", this );
+#endif
+	this->set_socket_rcvbuf_size( 10 * MAX_BODY_SIZE );
+	this->set_socket_sndbuf_size( 10 * MAX_BODY_SIZE );
+	fAcceptTime = 0;
+	fFTPSession = ftpSession;
+	fCurrentDir = currentDir;
+	fRcvFinished = false;
+	fFileDesc = -1;
+	fType = UNKNOWN;
 }
 
 // DataTransferSession::DataTransferSession( FTPSession *ftpSession, std::string currentDir, int32_t fd ) :
@@ -76,31 +90,31 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			std::string relFilePath = "/" + fFilePath;
 			std::string absFilePath = fCurrentDir + relFilePath;
 
-			if ( fMode == Passive )
-			{
-				if ( !fConnected )
-				{
-					socklen_t len = sizeof( struct sockaddr );
-					Address address;
-#if 0
-					DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
-#endif
-					int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
-#if 0
-					RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)PASV DataTransferSession=%x fListenerSocket=%d,fRDSocket=%d",
-						this, this->fSocket, socketID );
-#endif
-					if ( socketID == -1 )
-						return -1;
-					this->fListenerSocket = this->fSocket;
-					//::close( this->fSocket );
-					this->fSocket = socketID;
-					fConnected = true;
-				}
-			}
+// 			if ( fMode == Passive )
+// 			{
+// 				if ( !fConnected )
+// 				{
+// 					socklen_t len = sizeof( struct sockaddr );
+// 					Address address;
+// #if 0
+// 					DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
+// #endif
+// 					int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
+// #if 0
+// 					RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)PASV DataTransferSession=%x fListenerSocket=%d,fRDSocket=%d",
+// 						this, this->fSocket, socketID );
+// #endif
+// 					if ( socketID == -1 )
+// 						return -1;
+// 					this->fListenerSocket = this->fSocket;
+// 					//::close( this->fSocket );
+// 					this->fSocket = socketID;
+// 					fConnected = true;
+// 				}
+// 			}
 
-			if ( fType == PASV )
-			{
+//			if ( fType == PASV )
+//			{
 // 				socklen_t len = sizeof( struct sockaddr );
 // 				Address address;
 // 				int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
@@ -112,9 +126,9 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 // 				::close( this->fSocket );
 // 				this->fSocket = socketID;
 // 				fConnected = true;
-				return -1;
-			}
-			else if ( fType == STOR )
+//				return -1;
+//			}
+			if ( fType == STOR )
 			{
 				const int blockSize = MAX_BODY_SIZE;
 				char recvBuf[blockSize];

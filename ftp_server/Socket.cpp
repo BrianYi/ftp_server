@@ -100,7 +100,7 @@ void Socket::open( )
 
 	if ( ( this->fSocket = ::socket( AF_INET, this->fSocketType, this->fProtocol ) ) == -1 )
 	{
-		printf( "Create socket error!\n" );
+		printf( "Create socket error!errno=%d\n", errno );
 		return;
 	}
 	this->fOpened = true;
@@ -131,7 +131,7 @@ void Socket::bind_to_port( const uint16_t& inPort )
 		Address address( inPort );
 		if ( bind( this->fSocket, ( const sockaddr* ) &address, sizeof( struct sockaddr ) ) == -1 )
 		{
-			printf( "Binded socket error!\n" );
+			printf( "Binded socket error!errno=%d\n", errno );
 			return;
 		}
 		this->fBinded = true;
@@ -169,7 +169,7 @@ void Socket::reuse_addr( )
 	int one = 1;
 	if ( ::setsockopt( this->fSocket, SOL_SOCKET, SO_REUSEADDR, ( char* ) &one, sizeof( int ) ) == -1 )
 	{
-		printf( "[reuse_addr] error!\n" );
+		printf( "[reuse_addr] error!errno=%d\n", errno );
 		return;
 	}
 	return;
@@ -180,7 +180,7 @@ void Socket::no_delay( )
 	int one = 1;
 	if ( ::setsockopt( this->fSocket, IPPROTO_TCP, TCP_NODELAY, ( char* ) &one, sizeof( int ) ) == -1 )
 	{
-		printf( "[no_delay] error!\n" );
+		printf( "[no_delay] error!errno=%d\n", errno );
 		return;
 	}
 	return;
@@ -191,7 +191,7 @@ void Socket::keep_alive( )
 	int one = 1;
 	if ( ::setsockopt( this->fSocket, SOL_SOCKET, SO_KEEPALIVE, ( char* ) &one, sizeof( int ) ) == -1 )
 	{
-		printf( "[keep_alive] error!\n" );
+		printf( "[keep_alive] error!errno=%d\n", errno );
 		return;
 	}
 	return;
@@ -202,7 +202,7 @@ void Socket::set_socket_sndbuf_size( uint32_t inNewSize )
 	int bufSize = inNewSize;
 	if ( ::setsockopt( this->fSocket, SOL_SOCKET, SO_SNDBUF, ( char* ) &bufSize, sizeof( int ) ) == -1 )
 	{
-		printf( "[set_socket_sndbuf_size] error!\n" );
+		printf( "[set_socket_sndbuf_size] error!errno=%d\n", errno );
 		return;
 	}
 	return;
@@ -213,7 +213,7 @@ void Socket::set_socket_rcvbuf_size( uint32_t inNewSize )
 	int bufSize = inNewSize;
 	if ( ::setsockopt( this->fSocket, SOL_SOCKET, SO_RCVBUF, ( char* ) &bufSize, sizeof( int ) ) == -1 )
 	{
-		printf( "[set_socket_rcvbuf_size] error!\n" );
+		printf( "[set_socket_rcvbuf_size] error!errno=%d\n", errno );
 		return;
 	}
 	return;

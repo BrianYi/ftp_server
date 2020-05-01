@@ -5,7 +5,7 @@
 #include "ServerHeader.h"
 #include "Dispatcher.h"
 #include "TaskThread.h"
-#include "FTPListenerSocket.h"
+#include "FTPListener.h"
 #include "Log.h"
 #include <sys/stat.h>
 #include <dirent.h>
@@ -79,16 +79,16 @@ int main( int argc, char* argv[ ] )
 	/*
 	 * Register listener
 	 */
-	FTPListenerSocket *ftpListenerSocket = new FTPListenerSocket(ftpHome);
-	ftpListenerSocket->listen( SERVER_COMMAND_PORT, 64 );
-	ftpListenerSocket->request_event( EPOLLIN );
+	FTPListener *ftpListener = new FTPListener(ftpHome);
+	ftpListener->listen( SERVER_COMMAND_PORT, 64 );
+	ftpListener->request_event( EPOLLIN );
 
 	for ( ;; )
 	{
 		sleep( 5 );
 	}
 
-	delete ftpListenerSocket;
+	delete ftpListener;
 	delete dispatcher;
 	exit( EXIT_SUCCESS );
 }

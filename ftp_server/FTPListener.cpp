@@ -1,23 +1,27 @@
 /*
  * Copyright (C) 2020 BrianYi, All rights reserved
  */
-#include "FTPListenerSocket.h"
+#include "FTPListener.h"
 #include "FTPSession.h"
 #include "Log.h"
 
-FTPListenerSocket::FTPListenerSocket( std::string ftpHome ):
+FTPListener::FTPListener( std::string ftpHome ):
 	TcpSocket()
 {
 	fFtpHome = ftpHome;
 }
 
-FTPListenerSocket::~FTPListenerSocket()
+FTPListener::~FTPListener()
 {
 
 }
 
-int32_t FTPListenerSocket::handle_event( uint32_t flags )
+int32_t FTPListener::handle_event( uint32_t flags )
 {
+	// if it still in killed
+	if ( fIsDead )
+		return -1;
+
 	// new connection
 	if ( flags & EPOLLIN )
 	{
@@ -60,7 +64,7 @@ int32_t FTPListenerSocket::handle_event( uint32_t flags )
 	return -1;
 }
 
-FTPSession* FTPListenerSocket::accept( IOType inIOType )
+FTPSession* FTPListener::accept( IOType inIOType )
 {
 	if ( this->fIOType != inIOType )
 		this->setIOType( inIOType );

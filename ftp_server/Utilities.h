@@ -47,9 +47,10 @@ inline std::vector<std::string> SplitString( std::string sourStr,
 	return strArry;
 }
 
-
+static std::mutex g_mux;
 inline int sys_auth_user( const char*username, const char*password )
 {
+	std::unique_lock<std::mutex> locker( g_mux );
 	struct passwd*pw;
 	struct spwd*sp;
 	char*encrypted, *correct;

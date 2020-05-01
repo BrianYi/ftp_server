@@ -1,6 +1,7 @@
 #include "FTPSession.h"
 #include "DataTransferSession.h"
 #include "Utilities.h"
+#include "DataTransferListener.h"
 
 
 FTPSession::FTPSession():
@@ -11,6 +12,7 @@ FTPSession::FTPSession():
 #endif
 	fAcceptTime = 0;
 	fstate = UnAuthorized;
+	fMode = Active;
 }
 
 FTPSession::FTPSession( int32_t fd ):
@@ -21,6 +23,7 @@ FTPSession::FTPSession( int32_t fd ):
 #endif
 	fAcceptTime = 0;
 	fstate = UnAuthorized;
+	fMode = Active;
 }
 
 FTPSession::~FTPSession()
@@ -138,7 +141,7 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								std::vector<std::string> vecStr = SplitString( strArry[1], "," );
 								std::string ipAddr = vecStr[0] + "." + vecStr[1] + "." + vecStr[2] + "." + vecStr[3];
 								uint16_t dataPort = stoi( vecStr[4] ) * 256 + stoi( vecStr[5] );
-								DataTransferSession *dataTransSession = new DataTransferSession( this, fCurDir, DataTransferSession::Active );
+								DataTransferSession *dataTransSession = new DataTransferSession( this, fCurDir );
 								dataTransSession->set_accept_time( get_timestamp_ms() );
 								if ( dataTransSession->connect( ipAddr, dataPort, Socket::Blocking ) != 0 )
 								{
@@ -159,10 +162,16 @@ int32_t FTPSession::handle_event( uint32_t flags )
 							}
 							case PASV:
 							{
-								DataTransferSession *dataTransSession = new DataTransferSession( this, fCurDir, DataTransferSession::Passive  );
-								dataTransSession->set_accept_time( get_timestamp_ms() );
-								dataTransSession->listen( 0, 64 );
-								uint16_t port = dataTransSession->local_port();
+								fMode = Passive;
+								/*
+								 * dataTransListener will kill itself when it successful received an DataTransferSession
+								 * if it always in waiting queue, and client has already send STOR/RETR in advance, it
+								 * could cause an error!
+								 */
+								fDataTransListener = new DataTransferListener( this, fCurDir );
+								fDataTransListener->listen( 0, 64 );
+								
+								uint16_t port = fDataTransListener->local_port();
 								std::vector<std::string> vecStr = SplitString( SERVER_IP, "." );
 								retStr = "227 Entering Passive Mode (" +
 									vecStr[0] + "," + vecStr[1] + "," + vecStr[2] + "," + vecStr[3] + "," +
@@ -170,11 +179,11 @@ int32_t FTPSession::handle_event( uint32_t flags )
 									").\r\n";
 
 								// request read event
-								dataTransSession->request_event( EPOLLIN );
-								(void)dataTransSession->exec_command( commandType, "" );
+								//dataTransListener->request_event( EPOLLIN );
+								//(void)dataTransSession->exec_command( commandType, "" );
 
 								// success
-								fDataTransSessionStack.push( dataTransSession );
+								//fDataTransSessionStack.push( dataTransSession );
 								//retStr = "200 Port command successful\r\n";
 #if 0
 								RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(response)PASV FTPSession=%x, dataTransSession=%x %s",
@@ -190,6 +199,14 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								break;
 							case RETR:
 							{
+								if ( fMode == Passive )
+								{
+									if ( fDataTransSessionStack.empty() )
+									{
+										fDataTransListener->handle_accept( );
+										delete fDataTransListener;
+									}
+								}
 								// it must be 1
 								assert( fDataTransSessionStack.size() == 1 );
 
@@ -205,6 +222,14 @@ int32_t FTPSession::handle_event( uint32_t flags )
 							}
 							case STOR:
 							{
+								if ( fMode == Passive )
+								{
+									if ( fDataTransSessionStack.empty() )
+									{
+										fDataTransListener->handle_accept();
+										delete fDataTransListener;
+									}
+								}
 								// it must be 1
 								assert( fDataTransSessionStack.size() == 1 );
 
@@ -246,6 +271,8 @@ int32_t FTPSession::handle_event( uint32_t flags )
 								break;
 							case LIST:
 							{
+								while ( fDataTransSessionStack.empty() )
+									::usleep( 1 );
 								// it must be 1
 								assert( fDataTransSessionStack.size() == 1 );
 

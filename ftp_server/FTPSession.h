@@ -4,8 +4,10 @@
 #include "Packet.h"
 #include "Queue.h"
 #include "Stack.h"
+#include <condition_variable>
 
 class DataTransferSession;
+class DataTransferListener;
 
 class FTPSession:
 	public TcpSocket
@@ -16,7 +18,11 @@ public:
 		//
 		UnAuthorized,
 		Authorized,
-		// 
+	};
+	enum Mode
+	{
+		Active,
+		Passive
 	};
 	FTPSession();
 	FTPSession( int32_t fd );
@@ -44,9 +50,14 @@ public:
 	void set_current_dir( std::string dir ) { fCurDir = dir; }
 	std::string current_dir() { return fCurDir; }
 	void disconnect();
+	void push_data_transfer_session( DataTransferSession* session )
+	{
+		fDataTransSessionStack.push( session );
+	}
 private:
 	PriorityQueue<Packet*> fSendPriQueue;
 	Stack<DataTransferSession*> fDataTransSessionStack;
+	DataTransferListener* fDataTransListener;
 	int64_t fAcceptTime;
 	std::mutex fReadMx;
 	std::mutex fWriteMx;
@@ -54,5 +65,6 @@ private:
 	std::string fCurDir;
 	std::string fUserName;
 	std::string fPassword;
+	Mode fMode;
 };
 

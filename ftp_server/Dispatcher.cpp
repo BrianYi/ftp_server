@@ -60,8 +60,7 @@ void Dispatcher::register_handler( int fd, EventHandler* handler )
 	std::unique_lock<std::mutex> locker( sHandlerTableMx );
 
 	// judge if event exist
-	auto it = sHandlerTable.find( fd );
-	if ( it == sHandlerTable.end() )
+	if ( !sHandlerTable.count(fd) )
 	{
 		/*
 		 * event doesn't exist, register new one
