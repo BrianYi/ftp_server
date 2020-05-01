@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #pragma once
 #include "TcpSocket.h"
 #include "Queue.h"
@@ -46,6 +49,4 @@ private:
 	int32_t fFileDesc;
 	bool fRcvFinished;
 	int32_t fType;
-	//Mode	fMode;
-	//bool fConnected;
 };

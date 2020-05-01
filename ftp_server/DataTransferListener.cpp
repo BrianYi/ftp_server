@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #include "DataTransferListener.h"
 #include "DataTransferSession.h"
 #include "FTPSession.h"

@@ -1,5 +1,7 @@
+/*
+ * Copyright (C) 2020 BrianYi, All rights reserved
+ */
 #include "Dispatcher.h"
-//#include "Task.h"
 #include "TaskThread.h"
 #include "Log.h"
 
