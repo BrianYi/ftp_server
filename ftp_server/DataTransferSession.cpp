@@ -75,7 +75,13 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 
 	if ( flags & EPOLLIN )
 	{
-		// lock reading
+		/* 
+		 * lock reading
+		 * I think this locker is doesn't needed
+		 * for reading, it cannot causes error or conflicts
+		 * multi-read is safe
+		 * maybe i will try in the future, now it need to be stable
+		 */
 		std::unique_lock<std::mutex> lockRead( this->fReadMx, std::try_to_lock );
 		if ( !lockRead.owns_lock() )
 			return 1;
@@ -87,50 +93,16 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			// this shot is triggered
 			this->fEvents &= ~EPOLLIN;
 
+			/*
+			 * this would forbidden other threads to come in 
+			 * when receive is finished
+			 */
 			if ( fRcvFinished )
 				return -1;
 
 			std::string relFilePath = "/" + fFilePath;
 			std::string absFilePath = fCurrentDir + relFilePath;
 
-// 			if ( fMode == Passive )
-// 			{
-// 				if ( !fConnected )
-// 				{
-// 					socklen_t len = sizeof( struct sockaddr );
-// 					Address address;
-// #if 0
-// 					DebugTime debugTime( DebugTime::Print, __LINEINFO__ );
-// #endif
-// 					int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
-// #if 0
-// 					RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)PASV DataTransferSession=%x fListenerSocket=%d,fRDSocket=%d",
-// 						this, this->fSocket, socketID );
-// #endif
-// 					if ( socketID == -1 )
-// 						return -1;
-// 					this->fListenerSocket = this->fSocket;
-// 					//::close( this->fSocket );
-// 					this->fSocket = socketID;
-// 					fConnected = true;
-// 				}
-// 			}
-
-//			if ( fType == PASV )
-//			{
-// 				socklen_t len = sizeof( struct sockaddr );
-// 				Address address;
-// 				int socketID = ::accept( this->fSocket, (struct sockaddr*)&address, &len );
-// #if 0
-// 				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)PASV DataTransferSession=%x fListenerSocket=%d,fRDSocket=%d",
-// 					this, this->fSocket, socketID );
-// #endif
-// 				if ( socketID == -1 ) return -1;
-// 				::close( this->fSocket );
-// 				this->fSocket = socketID;
-// 				fConnected = true;
-//				return -1;
-//			}
 			if ( fType == STOR )
 			{
 				const int blockSize = MAX_BODY_SIZE;
@@ -140,8 +112,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 				RTMP_LogAndPrintf( RTMP_LOGDEBUG, "(DataTransfer)STOR DataTransferSession=%x fRDSocket=%d",
 					this, this->fSocket );
 #endif
-				//printf( "%d\n", recvSize );
-				// peer connection lost
+				// peer connection finished sending or lost
 				if ( recvSize <= 0 )
 				{
 					if ( recvSize == 0 ) // lost connection or finished
@@ -153,14 +124,15 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 						this->request_event( EPOLLIN );
 						return -1;//break
 					}
-					else // EAGAIN
+					else
 					{
+						// receive buffer is empty or now is busy
 						if ( errno == EAGAIN )
 						{
 							this->request_event( EPOLLIN );
 							return -1;// break;
 						}
-						else
+						else // errors occurred
 						{
 							RTMP_LogAndPrintf( RTMP_LOGERROR, "errno=%d", errno );
 							assert( false );
@@ -169,6 +141,11 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 				}
 				else
 				{
+					/*
+					 * original thought is split big chunk into many packet
+					 * but, it can cause many I/O, largely impact efficiency
+					 * so the numPack now always is 1
+					 */
 					int32_t numPack = (recvSize + MAX_BODY_SIZE - 1) / MAX_BODY_SIZE;
 					int32_t bodySize = 0;
 					for ( int i = 0; i < numPack; ++i )
@@ -176,6 +153,12 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 						bodySize = (i == numPack - 1) ?
 							recvSize - i * MAX_BODY_SIZE : MAX_BODY_SIZE;
 						this->push( PacketUtils::new_packet( fType, recvBuf + i * MAX_BODY_SIZE, bodySize, 1 ) );
+						
+						/*
+						 * local I/O don't need to request event(don't need listen network event)
+						 * it should be pushed into task queue directly, then task thread would get
+						 * it out and write it to file
+						 */
 						Task *task = new Task( this, EPOLLOUT );
 						Dispatcher::push_to_thread( task );
 					}
@@ -185,8 +168,11 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			}
 			else if ( fType == RETR )
 			{
-				// judge if file already opened
-				// in multi-thread environment, one thread opened file, others just read
+				/* 
+				 * judge if file already opened
+				 * in multi-thread environment, one thread opened file, others just read
+				 * TODO: this doesn't finished
+				 */
 				if ( fFileDesc == -1 )
 				{
 					fFileDesc = ::open( absFilePath.c_str(), O_RDONLY );
@@ -242,6 +228,13 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 	{
 		// lock writing
 		std::unique_lock<std::mutex> lockWrite( this->fWriteMx, std::try_to_lock );
+		
+		/*
+		 * we don't want to thread wait to long to cause low efficiency
+		 * keep worker thread always and just sleep when the task queue has no job
+		 * this can efficiently dealing with high concurrent requests
+		 * we don't use any blocking function, it could low the throughput
+		 */
 		if ( !lockWrite.owns_lock() )
 			return 1;
 		else
@@ -252,15 +245,14 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 			// this shot is triggered
 			this->fEvents &= ~EPOLLOUT;
 
-			// if it still in killed
-// 			if ( fIsDead )
-// 				return 0;
-
 			std::string relFilePath = "/" + fFilePath;
 			std::string absFilePath = fCurrentDir + relFilePath;
 
 			for ( ;; )
 			{
+				/*
+				 * tick out all packets, then write to file
+				 */
 				if ( this->empty() )
 				{
 					this->request_event( EPOLLIN );
@@ -275,7 +267,7 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 					// judge if store finished?(last packet is useless,just a clue of finishing)
 					if ( !ptrPacket->more() )
 					{
-						// finished write to file
+						// finished writing
 						std::string retStr = "226 Successfully upload '" + relFilePath + "'\r\n";
 						fFTPSession->push( PacketUtils::new_packet( REPLY, retStr.c_str(), retStr.size(), 0 ) );
 						fFTPSession->request_event( EPOLLOUT );
@@ -313,6 +305,9 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 				}
 				else if ( fType == RETR )
 				{
+					/*
+					 * TODO: this doesn't finished
+					 */
 					if ( !ptrPacket->more() )
 					{
 						// finished sending file

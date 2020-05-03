@@ -6,6 +6,13 @@
 #include "Queue.h"
 #include "Packet.h"
 #include "FTPSession.h"
+
+/*
+ * DataTranferSession is only work for data transmission
+ * every FTPSession can owns many data transmission
+ * it means for one user(one FTPSession), it could transfer over 500 files
+ * (would establish 500 data transmission) one time
+ */
 class DataTransferSession :
 	public TcpSocket
 {

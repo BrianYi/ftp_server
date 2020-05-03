@@ -7,7 +7,7 @@
 #include <shadow.h>
 
 #define __LINEINFO__ \
-	std::string(__FILE__) + ":" + /*std::string(__func__) + "," +*/ std::to_string(__LINE__)
+	std::string(__FILE__) + ":" +  std::to_string(__LINE__)
 
 inline std::string ls_command( std::string dir )
 {
@@ -74,6 +74,17 @@ inline int sys_auth_user( const char*username, const char*password )
 	return strcmp( encrypted, correct ) ? 2 : 0;  // bad pw=2, success=0
 }
 
+/*
+ * this class can be used to estimate operation time
+ * for example:
+ * {
+ *    DebugTime dbgTime(DebugTime::Print, __LINEINFO__);
+ *    float y = 0.0f;
+ *    float x = 2.0f;
+ *    for (int i = 0; i < 100; ++i)
+ *		y = sqrt(sqrt(pow(x,8.0)));
+ * }
+ */
 class DebugTime
 {
 public:

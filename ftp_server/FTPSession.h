@@ -12,6 +12,13 @@
 class DataTransferSession;
 class DataTransferListener;
 
+/*
+ * One user is one FTPSession
+ * FTPSession dealing with ftp command, and spawn DataTransferSession
+ * for data transmission
+ * one FTPSession can spawn more than 500 data transmission, it means
+ * one user could transfer more than 500 files one time
+ */
 class FTPSession:
 	public TcpSocket
 {
