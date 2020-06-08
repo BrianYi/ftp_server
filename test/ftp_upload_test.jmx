@@ -82,7 +82,7 @@
           <boolProp name="FTPSampler.saveresponse">false</boolProp>
           <boolProp name="FTPSampler.upload">true</boolProp>
           <stringProp name="ConfigTestElement.username">brianyi</stringProp>
-          <stringProp name="ConfigTestElement.password">123123</stringProp>
+          <stringProp name="ConfigTestElement.password">4833793</stringProp>
         </FTPSampler>
         <hashTree/>
         <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter" enabled="true">

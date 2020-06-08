@@ -21,7 +21,6 @@ public:
 private:
 	PriorityQueue<Task*> fTaskPriQueue;
 	std::atomic<uint64_t> fThrowOutPacketNum;
-	//std::mutex mx;
 };
 
 class TaskThreadPool

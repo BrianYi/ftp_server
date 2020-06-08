@@ -51,3 +51,4 @@ readme/
 bin/
 obj/
 build/
+test/report

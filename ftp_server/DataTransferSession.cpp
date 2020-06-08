@@ -79,8 +79,8 @@ int32_t DataTransferSession::handle_event( uint32_t flags )
 		 * lock reading
 		 * I think this locker is doesn't needed
 		 * for reading, it cannot causes error or conflicts
-		 * multi-read is safe
-		 * maybe i will try in the future, now it need to be stable
+		 * multi-thread read is safe
+		 * maybe i will try to fix it in the future, now it need to be stable
 		 */
 		std::unique_lock<std::mutex> lockRead( this->fReadMx, std::try_to_lock );
 		if ( !lockRead.owns_lock() )
